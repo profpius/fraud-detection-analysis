@@ -1,0 +1,137 @@
+INSTRUCTIONS - Fraud Detection Data Analysis (victor_fraud_detection.py)
+=============================================================
+
+FILES NEEDED (put both in the SAME folder)
+  1. victor_fraud_detection.py
+  2. fraud_detection_data.csv
+
+WHAT THE SCRIPT DOES:
+  1. Loads data from a csv file
+  2. Cleans the data (fixes dates and amounts, checks for duplicates)
+  3. Summarises the data
+  4. Draws a chart of fraud vs non-fraud transactions
+  5. Shows a text menu so you can repeat any of these steps
+
+Written and tested with Python 3.13.9. Any recent Python 3
+version should also work.
+
+---------------------------------------------
+STEP 1 - INSTALL PYTHON
+---------------------------------------------
+If you can already run .py files on your computer,
+skip to Step 2.
+
+Otherwise install Python 3 from https://www.python.org/downloads/
+(tick "Add Python to PATH" on Windows).
+
+To check it installed, open a terminal (Command Prompt on
+Windows, Terminal on Mac) and run:
+
+    python --version
+
+On Mac/Linux you may need:
+
+    python3 --version
+
+---------------------------------------------
+STEP 2 - INSTALL THE PACKAGES
+---------------------------------------------
+This script uses two packages that do not come with Python:
+
+    pandas       - loads and works with csv data
+    matplotlib   - draws the chart
+
+Install both with ONE command in a terminal:
+
+    pip install pandas matplotlib
+
+If "pip" is not found, try:
+
+    python -m pip install pandas matplotlib
+
+On Mac/Linux you may need "pip3" or "python3":
+
+    pip3 install pandas matplotlib
+
+If you use Anaconda, both packages are already installed.
+
+To check they installed, run this in a terminal:
+
+    python -c "import pandas, matplotlib; print(pandas.__version__, matplotlib.__version__)"
+
+If it prints two version numbers with no error, it worked.
+
+---------------------------------------------
+STEP 3 - RUN THE SCRIPT
+---------------------------------------------
+1. Open a terminal in the folder with the two files.
+   (Windows: click the folder address bar, type cmd, press Enter)
+   (Mac: right-click the folder > New Terminal at Folder)
+2. Type:
+
+       python victor_fraud_detection.py
+
+   On Mac/Linux you may need:
+
+       python3 victor_fraud_detection.py
+
+3. WHAT HAPPENS ON START-UP:
+   The script automatically loads the data, cleans it, prints
+   a summary and opens a bar chart window.
+   CLOSE THE CHART WINDOW to continue. The menu will not
+   appear until the chart is closed.
+
+---------------------------------------------
+USING THE MENU
+---------------------------------------------
+Type a number (1-5) and press Enter:
+
+    1 = Load the fraud detection data
+    2 = Clean the fraud detection data
+    3 = Summarise the fraud detection data
+    4 = Visualise the fraud detection data (opens the chart)
+    5 = Exit
+
+The menu comes back after each choice until you pick 5.
+
+IMPORTANT
+  - The menu starts with NO data loaded, so choose 1 first.
+    Choices 2 to 4 will show "Fraud detection data is empty.
+    Please load the data first using option 1" until you do.
+  - After choosing 4, close the chart window to return
+    to the menu.
+  - Entering anything other than 1 to 5 shows
+    "Invalid choice" and asks again.
+
+WHAT YOU SHOULD SEE
+  Choice 1: "File has been found.", then the number of rows and
+            columns, then the first 5 rows.
+  Choice 2: A message for the timestamps, a message for the
+            amounts, and a duplicate check.
+  Choice 3: Amount statistics and a count of fraud vs
+            non-fraud transactions.
+  Choice 4: A bar chart titled "Fraud Vs Non-Fraud Transactions".
+
+---------------------------------------------
+USING A DIFFERENT CSV FILE
+---------------------------------------------
+Change the file name near the top of the script AND in the
+menu (choice 1):
+
+    file_name = "your_file.csv"
+    df = load_data("your_file.csv")
+
+The script expects these column names, so a different file
+must use them or the column names must be changed in the code:
+
+    Timestamp
+    Amount (USD)
+    Is Fraud   (values must be True / False)
+
+---------------------------------------------
+OUTPUT FILES
+---------------------------------------------
+The script does NOT save any files. Cleaning only changes the
+data while the script is running. The original csv is never
+changed.
+
