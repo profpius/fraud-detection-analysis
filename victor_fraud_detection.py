@@ -178,15 +178,49 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     
     return data # Return the cleaned data so the other functions can use it.
 
-# Summarise the data so the menu can show the user useful information.
+# ============================================================================================
+# Function: summarise_data
+# Description: Print amount statistics and fraud counts and fraud percentage to give the user a quick overview of the data.
+# Parameters: df (pd.DataFrame)
+# Returns: None
+# ============================================================================================
+
+# Define a function to display a summary of the fraud detection data so the user can quickly understand the key information.
 def summarise_data(df):
-    # Gives the user a quick summary of the numerical data without reading every row.
+
+    # Use only the Amount (USD) column to show clear numerical statistics.
+    # Summarising the whole DataFrame would include non-numeric columns and be less clear.
     print("Amount statistics:")
-    print(df.describe())
-    # Check how common fraud is compared with normal transactions.
+
+    # Display descriptive statistics for the Amount (USD) column, including count, mean,standard deviation,
+    # minimum, maximum, and quartiles for the user to understand the distribution of transaction amounts.
+    print(df["Amount (USD)"].describe())
+
+    # Print an empty line to make the output easier to read by separating the amount statistics from the fraud counts.
+    print()
+
+    # Display how many transactions are fraudulent and how many are not, so the user can see the balance between the two groups.
+    # dropna=False keeps missing fraud labels in the count instead of leaving them out.
     print("Fraud count:")
-    print(df["Is Fraud"].value_counts())
-summarise_data(df)
+    print(df["Is Fraud"].value_counts(dropna=False))
+    print()
+
+    # Calculate the percentage of transactions marked as fraud.
+    # Only use True/False values so missing labels do not affect the percentage calculation.
+    valid_labels = df["Is Fraud"].dropna() # Remove missing fraud labels to avoid skewing the percentage calculation.
+
+    # Check if there are no valid fraud labels to calculate a percentage.
+    if len(valid_labels) == 0:
+        print("No valid fraud labels to calculate a percentage.")
+
+    # If valid labels exist, calculate and display the fraud percentage.
+    else:
+        fraud_rate = valid_labels.mean() * 100 # Calculate the percentage of fraudulent transactions from the valid labels.
+        print(f"Fraud percentage: {fraud_rate:.1f}%") # Display the fraud percentage to one decimal place for easier reading.
+    
+
+
+
 
 # Create a chart showing the number of fraud and non-fraud transactions when selected from the menu
 def plot_fraud_counts(df):
