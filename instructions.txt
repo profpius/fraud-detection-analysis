@@ -1,4 +1,4 @@
-INSTRUCTIONS - Fraud Detection Data Analysis (victor_fraud_detection.py)
+INSTRUCTIONS - Victor Oshiogwere Pius Fraud Detection Script
 =============================================================
 
 FILES NEEDED (put both in the SAME folder)
@@ -12,7 +12,7 @@ WHAT THE SCRIPT DOES:
   4. Draws a chart of fraud vs non-fraud transactions
   5. Shows a text menu so you can repeat any of these steps
 
-Written and tested with Python 3.13.9. Any recent Python 3
+Written and tested with Python 3.14.2. Any recent Python 3
 version should also work.
 
 ---------------------------------------------
@@ -96,8 +96,7 @@ The menu comes back after each choice until you pick 5.
 
 IMPORTANT
   - The menu starts with NO data loaded, so choose 1 first.
-    Choices 2 to 4 will show "Fraud detection data is empty.
-    Please load the data first using option 1" until you do.
+    Choices 2 to 4 will show "No data loaded. Please load the data first (Option 1)" until you do.
   - After choosing 4, close the chart window to return
     to the menu.
   - Entering anything other than 1 to 5 shows
