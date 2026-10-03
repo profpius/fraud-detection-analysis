@@ -45,7 +45,6 @@ bad_value_marker = "INVALID"
 # Returns : pd.DataFrame or None if the file cannot be read / columns are missing.
 # ============================================================================================
 
-
 def load_data(file_name): # Loads the CSV file so its data can be used for cleaning, summaries and charts.
 
     try: # Attempts to read the CSV file so the program can work with its data.
@@ -76,48 +75,108 @@ loaded = load_data(file_name) # Attempts to load the fraud detection dataset.
 if loaded is not None: # Replaces the current data only after the new file loads successfully.
     df = loaded
 
+# ============================================================================================
+# Function: clean_data
+# Description: Fix data types, mark problem rows, and check for duplicates.
+#              Does not auto-delete rows because they may need human review.
+# Parameters: df (pd.DataFrame) - data from load_data
+# Returns: pd.DataFrame - cleaned data 
+# ============================================================================================
 
-# Prepare the data by fixing incorrect types and checking for problems before summarising and plotting
-def clean_data(df):
-    # Convert the Timestamp column to datetime for accurate time-based analysis.
-    # Use errors="coerce" to prevent invalid dates from stopping the script.
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
+def clean_data(df): # Cleans the fraud detection data so it is ready for analysis and visualisation.
+    data = df.copy() # Keeps the original data safe so it is not affected if cleaning is repeated.
+
+    # Changes the Timestamp column into dates and times so they can be used for analysis.
+    # Use errors="coerce" so incorrect dates becomes NaT instead of stopping the program.
+    data["Timestamp"] = pd.to_datetime(data["Timestamp"], errors="coerce") 
 
     # Count missing timestamps after conversion to identify dates that couldn't be processed.
-    unconverted_dates = df["Timestamp"].isnull().sum()
+    unconverted_dates = data["Timestamp"].isnull().sum()
 
-    # Display a message based on whether any timestamps are missing.
-    if unconverted_dates == 0:
+    if unconverted_dates == 0: # Confirms that all timestamps were converted successfully.
         print("All timestamps converted successfully.")
-    else:
+    else: # Informs the user how many timestamps could not be converted.
         print(f"{unconverted_dates} timestamps could not be converted.")
 
     # Convert Amount (USD) to numeric values for accurate summaries and charts.
-    # Use errors="coerce" so invalid values become missing instead of stopping the script.
-    df["Amount (USD)"] = pd.to_numeric(df["Amount (USD)"], errors="coerce")
+    # Use errors="coerce" so invalid values become NaN instead of stopping the script.
+    data["Amount (USD)"] = pd.to_numeric(data["Amount (USD)"], errors="coerce")
 
-    # Count missing Amount (USD) after conversion to identify amounts that could not be processed.
-    unconverted_amount = df["Amount (USD)"].isnull().sum()
+    # Count how many Amount (USD) values could not be converted and became NaN.
+    unconverted_amount = data["Amount (USD)"].isnull().sum()
 
-    # Display a message based on whether any amounts are missing, 
-    # so the user knows if bad values were found, rather than assuming the clean-up worked.
+    # Check if all Amount (USD) values were converted successfully and inform the user.
     if unconverted_amount == 0:
         print("All Amount (USD) converted successfully.")
+
+    # If some values could not be converted, tell the user how many failed.
     else:
         print(f"{unconverted_amount} Amount (USD) values could not be converted.")
 
+    # Check for amounts that are not missing and are zero or negative.
+    invalid_amounts = (data["Amount (USD)"].notnull()) & (data["Amount (USD)"] <= 0)
+
+    # Count how many invalid amounts were found.
+    invalid_amount_count = invalid_amounts.sum()
+
+    # Check if there are no zero or negative amounts.
+    if invalid_amount_count == 0:
+        print("No zero or negative Amount (USD) values found.")
+
+    # If there are invalid amounts, inform the user how many were found.
+    else:
+        print(f"{invalid_amount_count} zero or negative Amount (USD) values found. Marked as INVALID.")
+
+    # Convert different Is Fraud values into True or False.
+    # This makes the fraud column easier to use in calculations.
+    def to_boolean(value): # Define a function to convert different values into True or False for the Is Fraud column.
+        if pd.isna(value): # Keeps missing values as NA instead of treating them as True or False.
+            return pd.NA   # Treat unknown values as missing.
+        
+        # Converts the value to text, remove extra spaces, and use lowercase 
+        # to values like "TRUE", "True" are handled the same way.
+        text = str(value).strip().lower()
+        if text in ["true", "1", "yes", "y"]: # Treats these values as True for fraud detection.
+            return True
+        if text in ["false", "0", "no", "n"]: # Treats these values as False for fraud detection.
+            return False
+        return pd.NA # Treats any other values as missing instead of causing an error.
+
+    # Apply the to_boolean function to every value in the Is Fraud column.
+    data["Is Fraud"] = data["Is Fraud"].apply(to_boolean)
+
+    # Count the fraud label(s) that could not be recognized and became missing values (NA).
+    unconverted_fraud = data["Is Fraud"].isnull().sum()
+
+    if unconverted_fraud == 0: # Confirms that all Is Fraud labels were converted successfully.
+        print("All Is Fraud labels converted successfully.")
+    else: # Informs the user how many Is Fraud label(s) could not be converted.
+        print(f"{unconverted_fraud} Is Fraud label(s) could not be converted.")
+
+    # Mark every row that has a problem instead of deleting them.
+    # This keeps the original data available for the user to inspect later.
+    data["Data Status"] = "OK" # Start with all rows marked as OK.
+
+    # Find rows where the timestamp, amount, or fraud label is missing,
+    # or where the amount is zero or negative, and mark them as INVALID.
+    bad_rows = (data["Timestamp"].isnull() | data["Amount (USD)"].isnull() | data["Is Fraud"].isnull() | invalid_amounts)
+    data.loc[bad_rows, "Data Status"] = bad_value_marker # Mark the identified rows as INVALID.
+
+    # Tell the user how many rows were marked as having problems.
+    print(f"Rows marked '{bad_value_marker}': {bad_rows.sum()}")
+
+
     # Check for duplicate transactions without removing them, since repeated 
     # transactions may be genuine and should be investigated before deciding to delete them.
-    duplicate_rows = df.duplicated().sum()
+    duplicate_rows = data.duplicated().sum()
 
-    if duplicate_rows == 0:
+    if duplicate_rows == 0: # Check if there are no duplicate transactions.
         print("No duplicate transactions found.")
-    else:
+    
+    else: # If duplicates are found, tell the user how many need to be reviewed.
         print(f"{duplicate_rows} duplicate transactions found. Further investigation is required.")
-    # Return the clean data so the other functions can use it.
-    return df
-# Keep df updated with the cleaned data so other functions use the latest version.
-df = clean_data(df)
+    
+    return data # Return the cleaned data so the other functions can use it.
 
 # Summarise the data so the menu can show the user useful information.
 def summarise_data(df):
