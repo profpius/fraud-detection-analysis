@@ -1,12 +1,25 @@
-# The python version I used is Python 3.13.9 
+# - Python version used: 3.14.2. 
+# - Any recent version of Python 3 should work, but I have not tested it on earlier versions.
+
+# ========================================================================================
+# Victor's Fraud Detection Script
+# =========================================================================================
+# Overall design:
+# - The interactive menu is the only entry point. Nothing runs until the user selects an option.
+# - Data is held in one DataFrame (df). Load must succeed before Clean, Summarise or Visualise can run.
+# - Each step is in a separate function so the menu stays simple and the same code can be used more than once.
+# - Required columns are checked during load so a bad file never becomes the working data.
+# - Bad values become NaN and are marked "INVALID" instead of being deleted, so the user can still see that the rows existed.
+
+
 
 # Import pandas to read and clean the fraud detection data csv file.
-# Using plain Python would require more manual code to  handle rows, colunms, missing values and data summaries.
+# Using plain Python would require more manual code to handle rows, columns, missing values and data summaries.
 # Pandas provides DataFrame and built-in functions to perform these operations efficiently.
 # The alias 'pd' provides a shorter name when calling pandas functions repeatedly throughout the script.
 # Import matplotlib.pyplot to create charts for comparing fraudulent and legitimate transactions.
 # Plain Python does not provide built in plotting tools, 
-# so matplotlib makes it easier to visualise transaction patterns and identify between both groups.
+# so matplotlib makes it easier to visualise transaction patterns and compare the two groups.
 # The alias 'plt' shortens the long module name for repeated use throughout the script.
 
 
