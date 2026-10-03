@@ -241,36 +241,50 @@ def plot_fraud_counts(df):
     # Display the chart and wait until the chart window is closed before returning to the menu.
     plt.show()
 
-# Keep the menu in one function so it can be displayed again whenever the user needs to make a choice.
-def show_menu():
-    print("1. Load the fraud detection data")
-    print("2. Clean the fraud detection data")
-    print("3. Summarise the fraud detection data")
-    print("4. Visualise the fraud detection data")
-    print("5. Exit")
 
-# Start with no data loaded so the program knows when the user has not selected a file yet.
-df = None
-# Keeps showing the menu until the user chooses to exit.
-while True:
+# ==============================================================================
+# Function: show_menu
+# Description: Print the numbered menu options.
+# Parameters: none
+# Returns: None
+# ==============================================================================
+def show_menu(): # Define a function to display the available options to the user.
+    print("1. Load the fraud detection data") # Display option 1 for loading the fraud detection data.
+    print("2. Clean the fraud detection data") # Display option 2 for cleaning the loaded data.
+    print("3. Summarise the fraud detection data") # Display option 3 for showing a summary of the data.
+    print("4. Visualise the fraud detection data") # Display option 4 for creating charts from the data.
+    print("5. Exit") # Display option 5 for closing the program.
+
+# ==============================================================
+# Main program - menu is the only entry point
+# ==============================================================
+
+df = None # Start with no data so the program knows when a file has not been loaded yet.
+
+while True: # Keeps showing the menu until the user chooses to exit.
     show_menu()
-    choice = input("Enter your choice (1-5): ")
-    # Check if the user entered a valid menu option before processing their choice.
-    if choice not in [ "1", "2", "3", "4", "5"]:
-        print("Invalid choice. Please enter a number from 1 to 5.")
-    # Check which option the user selected so the program knows what to do.
-    elif choice == "1":
-        df = load_data("fraud_detection_data.csv")
-    elif choice == "5":
-        # Stops the menu loop when the user chooses to exit.
+    try: # Ask the user to select an option from the menu.
+        choice = input("Enter your choice (1-5): ")
+    except (KeyboardInterrupt, EOFError): # Handle Ctrl+C or closed input so the program exits instead of getting stuck.
+        print("\nExiting.") # Tells the user the program is closing.
         break
-    elif df is None:
-        print("Fraud detection data is empty. Please load the data first using option 1")
-    elif choice == "2":
-        df = clean_data(df) # Cleans the fraud detection data so it is ready for analysis.
+
+    if choice not in [ "1", "2", "3", "4", "5"]: # Check if the user entered a valid menu option before processing their choice.
+        print("Invalid choice. Please enter a number from 1 to 5.") # Ask the user to enter a valid option.
+        continue # Return to the menu so the user can enter a valid choice.
+    if choice == "5": # Check if the user selected option 5 to exit the program.
+        break # Stop the menu loop and end the program.
+    if choice == "1": 
+        loaded = load_data(file_name) # Load the data and store the result temporarily.
+        if loaded is not None: # Check that the data loaded successfully.
+            df = loaded # Replace the working data only when loading succeeds.
+        continue # Return to the menu after attempting to load the data.
+    if df is None: # Check whether the data has been loaded before using options 2-4.
+        print("No data loaded. Please load the data first (Option 1).") # Tell the user that no data is available.
+        continue # Return to the menu without running the selected option.
+    if choice == "2":
+        df = clean_data(df) # Clean the data and save the cleaned result back into df.
     elif choice == "3":
-        summarise_data(df) # Summarises the fraud detection data so the user can understand the key information.
+        summarise_data(df) # Display a summary of the data.
     elif choice == "4":
-        plot_fraud_counts(df) # Plot fraud counts so the user can easily compare fraudulent and non-fraudulent transactions.
-    
-    
+        plot_fraud_counts(df) # Display a chart showing the fraud counts.
