@@ -2,7 +2,7 @@
 # - Any recent version of Python 3 should work, but I have not tested it on earlier versions.
 
 # ========================================================================================
-# Victor's Fraud Detection Script
+# Victor Oshiogwere Pius Fraud Detection Script
 # =========================================================================================
 # Overall design:
 # - The interactive menu is the only entry point. Nothing runs until the user selects an option.
@@ -29,25 +29,52 @@ import matplotlib.pyplot as plt
 # Store the dataset filename in a variable for easy reuse when loading the fraud detection data.
 file_name =  "fraud_detection_data.csv"
 
-# Keep the loading code in one reusable function so the menu can run it
-# whenever the user selects the load option.
-def load_data(file_name):
-    # Use try and except to handle cases where fraud detection CSV file cannot be found.
-    # This prevents the script from stopping unexpectedly and displays a helpful message 
-    # so the user can check the filename and folder location.
-    try:
-        # Store the loaded fraud detection data in 'df' so I can use it for cleaning, summaries and charts.
-        df = pd.read_csv(file_name)
-    except FileNotFoundError:
-        print(f"{file_name} not found. Check the file name and the folder.")
-    else:
-        print("File has been found.")
-        print(df.shape)
-        print(df.head())
-        return df
+# Columns the script needs. Checked during load so a mismatch is caught early.
+required_columns = ["Timestamp", "Amount (USD)", "Is Fraud"]
 
-# Save the table in df so the other functions can work with it.
-df = load_data("fraud_detection_data.csv")
+# Clear marker for rows that could not be fully cleaned. Chosen so it is
+# obvious when inspecting the data later and will not be mistaken for real data.
+# This is used instead of deleting rows so the user can see that the row existed and investigate it further.
+bad_value_marker = "INVALID"
+
+# ============================================================================================
+# Function: load_data
+# Description: Loads the fraud detection data from a CSV file into a pandas DataFrame.
+#              Also checks that the required columns exist.
+# Parameters: file_name (str): - path to the CSV file containing the fraud detection data.
+# Returns : pd.DataFrame or None if the file cannot be read / columns are missing.
+# ============================================================================================
+
+
+def load_data(file_name): # Loads the CSV file so its data can be used for cleaning, summaries and charts.
+
+    try: # Attempts to read the CSV file so the program can work with its data.
+        df = pd.read_csv(file_name) # Store the loaded fraud detection data in 'df' so I can use it for cleaning, summaries and charts.
+    except FileNotFoundError: # Handles situations where the file cannot be found, preventing the program from crashing.
+        print(f"{file_name} not found. Check the file name and the folder.")
+        return None # Stops the function because the file could not be loaded.
+    except pd.errors.EmptyDataError: # Handles empty file so the program can inform the user instead of crashing.
+        print(f"{file_name} is empty. Check the file contents.")
+        return None # Stops the function because the file contains no data.
+    except Exception as exc: # Catches any other unexpected errors during file reading and informs the user.
+        print(f"An error occurred while loading {file_name}: {exc}")
+        return None # Return None to show that the file could not be loaded successfully.
+
+    # Checks that the file has all the required columns so the program can work with the data correctly.
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns: # Informs the user which columns are missing.
+        print(f"Missing required columns: {', '.join(missing_columns)}. Please check the CSV file.")
+        print("Expected columns are:", ", ".join(required_columns)) # Shows the columns the file is expected to contain for clarity.
+        return None # Stops the function if the required columns are missing.
+    print("File has been found. Required columns are present. Data loaded successfully.")
+    print(df.shape)
+    print(df.head())
+    return df
+
+df = None # Keeps the current data empty until a file loads successfully.
+loaded = load_data(file_name) # Attempts to load the fraud detection dataset.
+if loaded is not None: # Replaces the current data only after the new file loads successfully.
+    df = loaded
 
 
 # Prepare the data by fixing incorrect types and checking for problems before summarising and plotting
