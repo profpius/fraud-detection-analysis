@@ -7,7 +7,8 @@ FILES NEEDED (put both in the SAME folder)
 
 WHAT THE SCRIPT DOES:
   1. Loads data from a csv file
-  2. Cleans the data (fixes dates and amounts, checks for duplicates)
+  2. Cleans the data (fixes dates and amounts, checks for duplicates, convert the Is Fraud
+    column and marks problem rows as INVALID.)
   3. Summarises the data
   4. Draws a chart of fraud vs non-fraud transactions
   5. Shows a text menu so you can repeat any of these steps
@@ -76,10 +77,8 @@ STEP 3 - RUN THE SCRIPT
        python3 victor_fraud_detection.py
 
 3. WHAT HAPPENS ON START-UP:
-   The script automatically loads the data, cleans it, prints
-   a summary and opens a bar chart window.
-   CLOSE THE CHART WINDOW to continue. The menu will not
-   appear until the chart is closed.
+   The menu appears straight away with no data loaded.
+   Choose 1 first.
 
 ---------------------------------------------
 USING THE MENU
@@ -114,8 +113,7 @@ WHAT YOU SHOULD SEE
 ---------------------------------------------
 USING A DIFFERENT CSV FILE
 ---------------------------------------------
-Change the file name near the top of the script AND in the
-menu (choice 1):
+Change the file name near the top of the script:
 
     file_name = "your_file.csv"
     df = load_data("your_file.csv")
@@ -125,7 +123,7 @@ must use them or the column names must be changed in the code:
 
     Timestamp
     Amount (USD)
-    Is Fraud   (values must be True / False)
+    Is Fraud   (values must be True / False, 1/0, or yes/no)
 
 ---------------------------------------------
 OUTPUT FILES

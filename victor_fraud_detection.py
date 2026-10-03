@@ -70,11 +70,6 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
     print(df.head())
     return df
 
-df = None # Keeps the current data empty until a file loads successfully.
-loaded = load_data(file_name) # Attempts to load the fraud detection dataset.
-if loaded is not None: # Replaces the current data only after the new file loads successfully.
-    df = loaded
-
 # ============================================================================================
 # Function: clean_data
 # Description: Fix data types, mark problem rows, and check for duplicates.
@@ -87,7 +82,7 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     data = df.copy() # Keeps the original data safe so it is not affected if cleaning is repeated.
 
     # Changes the Timestamp column into dates and times so they can be used for analysis.
-    # Use errors="coerce" so incorrect dates becomes NaT instead of stopping the program.
+    # Use errors="coerce" so incorrect dates become NaT instead of stopping the program.
     data["Timestamp"] = pd.to_datetime(data["Timestamp"], errors="coerce") 
 
     # Count missing timestamps after conversion to identify dates that couldn't be processed.
@@ -222,7 +217,7 @@ def summarise_data(df):
 # Function: plot_fraud_counts
 # Description: Bar chart of fraud vs non-fraud transaction counts.
 # Parameters: df (pd.DataFrame)
-# Retuns: None 
+# Returns: None 
 # =======================================================================
 
 # Define a function to create a chart showing fraud and non-fraud transactions.
