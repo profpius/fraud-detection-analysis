@@ -7,8 +7,8 @@ FILES NEEDED (put both in the SAME folder)
 
 WHAT THE SCRIPT DOES:
   1. Loads data from a csv file
-  2. Cleans the data (fixes dates and amounts, checks for duplicates, convert the Is Fraud
-    column and marks problem rows as INVALID.)
+  2. Cleans the data (fixes dates and amounts, convert the Is Fraud column,
+     marks problem rows as INVALID, checks for duplicates)
   3. Summarises the data
   4. Draws a chart of fraud vs non-fraud transactions
   5. Shows a text menu so you can repeat any of these steps
