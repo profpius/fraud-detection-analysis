@@ -18,7 +18,7 @@
 # Pandas provides DataFrame and built-in functions to perform these operations efficiently.
 # The alias 'pd' provides a shorter name when calling pandas functions repeatedly throughout the script.
 # Import matplotlib.pyplot to create charts for comparing fraudulent and legitimate transactions.
-# Plain Python does not provide built in plotting tools, 
+# Plain Python does not provide built-in plotting tools, 
 # so matplotlib makes it easier to visualise transaction patterns and compare the two groups.
 # The alias 'plt' shortens the long module name for repeated use throughout the script.
 
