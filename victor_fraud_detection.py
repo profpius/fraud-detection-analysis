@@ -218,21 +218,28 @@ def summarise_data(df):
         fraud_rate = valid_labels.mean() * 100 # Calculate the percentage of fraudulent transactions from the valid labels.
         print(f"Fraud percentage: {fraud_rate:.1f}%") # Display the fraud percentage to one decimal place for easier reading.
     
+# ======================================================================
+# Function: plot_fraud_counts
+# Description: Bar chart of fraud vs non-fraud transaction counts.
+# Parameters: df (pd.DataFrame)
+# Retuns: None 
+# =======================================================================
 
-
-
-
-# Create a chart showing the number of fraud and non-fraud transactions when selected from the menu
+# Define a function to create a chart showing fraud and non-fraud transactions.
 def plot_fraud_counts(df):
+    # Check how many transactions are marked as fraud and not fraud.
     fraud_counts = df["Is Fraud"].value_counts()
+
     # Convert True and False into clear fraud labels so the user can easily understand the chart.
     plt.bar(fraud_counts.index.map({True: "Fraud", False: "Not Fraud"}), fraud_counts.values)
+    # Add a title to explain what the chart shows.
     plt.title("Fraud Vs Non-Fraud Transactions")
-    plt.xlabel("Fraud and Not Fraud")
+    # Label the horizontal axis to explain transaction categories.
+    plt.xlabel("Transaction Type")
+    # Label the vertical axis to show what the numbers represent.
     plt.ylabel("Number of transactions")
-    # Display the chart so the user can see it when the script runs.
+    # Display the chart and wait until the chart window is closed before returning to the menu.
     plt.show()
-plot_fraud_counts(df)
 
 # Keep the menu in one function so it can be displayed again whenever the user needs to make a choice.
 def show_menu():
