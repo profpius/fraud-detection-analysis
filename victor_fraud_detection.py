@@ -222,6 +222,28 @@ def summarise_data(df):
     else:
         fraud_rate = valid_labels.mean() * 100 # Calculate the percentage of fraudulent transactions from the valid labels.
         print(f"Fraud percentage: {fraud_rate:.1f}%") # Display the fraud percentage to one decimal place for easier reading.
+
+    # Compare the average amount of fradulent and legitimate.
+    # This helps me see which group has higher transaction values.
+    print()
+    print("Average amount by fraud status:")
+
+    # Calculate the average transaction amount for each group.
+    fraud_avg = df[df["Is Fraud"] == True] ["Amount (USD)"].mean()
+    legit_avg = df[df["Is Fraud"] == False] ["Amount (USD)"].mean()
+
+    # Check if an average value was found for fradulent transactions.
+    if pd.notna(fraud_avg):
+        print(f"Fraudulent transactions: {fraud_avg:.2f}")
+    else:
+        print("Fraudulent transactions: No data")
+
+    # Check if an average value was found for legitimate transactions.
+    if pd.notna(legit_avg):
+        print(f"Legitimate transactions: {legit_avg:.2f}")
+    else:
+        print("Legitimate transactions: No data")
+            
     
 # ======================================================================
 # Function: plot_fraud_counts
