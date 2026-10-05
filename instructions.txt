@@ -10,7 +10,7 @@ WHAT THE SCRIPT DOES:
   2. Cleans the data (fixes dates and amounts, convert the Is Fraud column,
      marks problem rows as INVALID, checks for duplicates)
   3. Summarises the data
-  4. Draws a chart of fraud vs non-fraud transactions
+  4. Draws a chart of fraud vs non-fraud transactions and saves it as PNG file
   5. Shows a text menu so you can repeat any of these steps
 
 Written and tested with Python 3.14.2. Any recent Python 3
@@ -88,7 +88,7 @@ Type a number (1-5) and press Enter:
     1 = Load the fraud detection data
     2 = Clean the fraud detection data
     3 = Summarise the fraud detection data
-    4 = Visualise the fraud detection data (opens the chart)
+    4 = Visualise the fraud detection data (saves a PNG chart)
     5 = Exit
 
 The menu comes back after each choice until you pick 5.
@@ -96,19 +96,20 @@ The menu comes back after each choice until you pick 5.
 IMPORTANT
   - The menu starts with NO data loaded, so choose 1 first.
     Choices 2 to 4 will show "No data loaded. Please load the data first (Option 1)" until you do.
-  - After choosing 4, close the chart window to return
-    to the menu.
+  - After choosing 4 the chart is saved as fraud_counts_chart.png.
+    The script also tries to open the chart window. Close the window to return to the menu.
+    If the window cannot open (common in some environments), the PNG file is still created.
   - Entering anything other than 1 to 5 shows
     "Invalid choice" and asks again.
+  - If pandas or matplotlib is missing, the script stops with a clear message telling you how to install them.
 
 WHAT YOU SHOULD SEE
   Choice 1: "File has been found.", then the number of rows and
             columns, then the first 5 rows.
-  Choice 2: A message for the timestamps, a message for the
-            amounts, and a duplicate check.
-  Choice 3: Amount statistics and a count of fraud vs
-            non-fraud transactions.
-  Choice 4: A bar chart titled "Fraud Vs Non-Fraud Transactions".
+  Choice 2: Messages about timestamps, amounts, fraud labels, INVALID rows, and duplicates.
+  Choice 3: Amount statistics, fraud counts, fraud percentage, and average amount for
+            fraudulent vs legitimate transactions.
+  Choice 4: A message that the chart has been saved, and (if possible) the chart window opens.
 
 ---------------------------------------------
 USING A DIFFERENT CSV FILE
@@ -116,19 +117,18 @@ USING A DIFFERENT CSV FILE
 Change the file name near the top of the script:
 
     file_name = "your_file.csv"
-    df = load_data("your_file.csv")
 
 The script expects these column names, so a different file
 must use them or the column names must be changed in the code:
 
     Timestamp
     Amount (USD)
-    Is Fraud   (values must be True / False, 1/0, or yes/no)
+    Is Fraud   (values must be True / False, 1/0, or yes/no, etc.)
 
 ---------------------------------------------
 OUTPUT FILES
 ---------------------------------------------
-The script does NOT save any files. Cleaning only changes the
-data while the script is running. The original csv is never
-changed.
+- The original CSV is never changed.
+- Cleaning only affects the data while the script is running.
+- Choice 4 creates a file called fraud_counts_chart.png in the same folder.
 
