@@ -305,7 +305,7 @@ df = None # Start with no data so the program knows when a file has not been loa
 while True: # Keeps showing the menu until the user chooses to exit.
     show_menu()
     try: # Ask the user to select an option from the menu.
-        choice = input("Enter your choice (1-5): ")
+        choice = input("Enter your choice (1-5): ").strip() # Store the user's choice and remove extra spaces.
     except (KeyboardInterrupt, EOFError): # Handle Ctrl+C or closed input so the program exits instead of getting stuck.
         print("\nExiting.") # Tells the user the program is closing.
         break
