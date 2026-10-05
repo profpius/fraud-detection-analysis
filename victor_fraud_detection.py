@@ -272,6 +272,16 @@ def plot_fraud_counts(df):
     # Adjust the layout so everything fits properly.
     plt.tight_layout()
 
+# Save the chart so it can be viewed later.
+filename = "fraud_counts_chart.png"
+plt.savefig(filename)
+print(f"Chart saved as '{filename}' in the current folder.")
+# Try to display the chart on the screen.
+try:
+    plt.show()
+except Exception:
+    print("Could not open the chart window (this is normal in some environment).")
+plt.close() # Close the chart after use.
 
 # ==============================================================================
 # Function: show_menu
