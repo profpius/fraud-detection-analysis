@@ -119,7 +119,7 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
         print(f"{unconverted_amount} Amount (USD) values could not be converted.")
 
     # Find amounts that are zero or negative (these are usually data errors).
-    invalid_amounts = (data["Amount (USD)"].notnull()) and (data["Amount (USD)"] <= 0)
+    invalid_amounts = (data["Amount (USD)"].notnull()) & (data["Amount (USD)"] <= 0)
 
     # Count how many invalid amounts were found.
     invalid_amount_count = invalid_amounts.sum()
@@ -272,16 +272,20 @@ def plot_fraud_counts(df):
     # Adjust the layout so everything fits properly.
     plt.tight_layout()
 
-# Save the chart so it can be viewed later.
-filename = "fraud_counts_chart.png"
-plt.savefig(filename)
-print(f"Chart saved as '{filename}' in the current folder.")
-# Try to display the chart on the screen.
-try:
-    plt.show()
-except Exception:
-    print("Could not open the chart window (this is normal in some environment).")
-plt.close() # Close the chart after use.
+    # Save a copy of the chart as a PNG file (useful backup).
+    filename = "fraud_counts_chart.png"
+    plt.savefig(filename)
+    print(f"Chart saved as '{filename}' in the current folder.")
+
+    # Try to display the chart window.
+    # Some environments cannot open a graphical window, so we catch the error
+    # and continue instead of letting the whole program crash.
+    try:
+        plt.show() # Show the chart to the user.
+    except Exception:
+        print("Could not open the chart window (this is normal in some environments).")
+        print("You can still open the saved file: fraud_counts_chart.png")
+
 
 # ==============================================================================
 # Function: show_menu
