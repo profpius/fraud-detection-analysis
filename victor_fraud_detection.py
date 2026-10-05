@@ -109,7 +109,7 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
         print(f"{unconverted_amount} Amount (USD) values could not be converted.")
 
     # Check for amounts that are not missing and are zero or negative.
-    invalid_amounts = (data["Amount (USD)"].notnull()) & (data["Amount (USD)"] <= 0)
+    invalid_amounts = (data["Amount (USD)"].notnull()) and (data["Amount (USD)"] <= 0)
 
     # Count how many invalid amounts were found.
     invalid_amount_count = invalid_amounts.sum()
@@ -268,6 +268,7 @@ while True: # Keeps showing the menu until the user chooses to exit.
         print("Invalid choice. Please enter a number from 1 to 5.") # Ask the user to enter a valid option.
         continue # Return to the menu so the user can enter a valid choice.
     if choice == "5": # Check if the user selected option 5 to exit the program.
+        print("Goodbye.")
         break # Stop the menu loop and end the program.
     if choice == "1": 
         loaded = load_data(file_name) # Load the data and store the result temporarily.
