@@ -12,19 +12,29 @@
 # - Bad values become NaN and are marked "INVALID" instead of being deleted, so the user can still see that the rows existed.
 
 
-
-# Import pandas to read and clean the fraud detection data csv file.
-# Using plain Python would require more manual code to handle rows, columns, missing values and data summaries.
-# Pandas provides DataFrame and built-in functions to perform these operations efficiently.
-# The alias 'pd' provides a shorter name when calling pandas functions repeatedly throughout the script.
-# Import matplotlib.pyplot to create charts for comparing fraudulent and legitimate transactions.
-# Plain Python does not provide built-in plotting tools, 
-# so matplotlib makes it easier to visualise transaction patterns and compare the two groups.
-# The alias 'plt' shortens the long module name for repeated use throughout the script.
+# ==================================================
+# Robust imports
+# I used try/except to show a simple error message if a package is missing,
+# instead of letting the program stop with an error.
+# ==================================================
 
 
-import pandas as pd
-import matplotlib.pyplot as plt
+try: # Check if pandas is available for working with the data.
+    import pandas as pd # Pandas helps me work with the data in the CSV file.
+except ImportError: # Show error message if pandas is not available.
+    print("ERROR: pandas is not installed.")
+    print("Please run: pip install pandas")
+    print("Then restart the program.")
+    exit()
+
+try:  # Check if matplotlib is available for creating charts.
+    import matplotlib.pyplot as plt # Matplotlib helps me create charts to understand the data
+except ImportError: # Show error message if matplotlib is not available.
+    print("ERROR: matplotlib is not installed.")
+    print("Please run: pip install matplotlib")
+    print("Then restart the program.")
+    exit()
+    
 
 # Store the dataset filename in a variable for easy reuse when loading the fraud detection data.
 file_name =  "fraud_detection_data.csv"
