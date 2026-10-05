@@ -27,7 +27,7 @@ except ImportError: # Show error message if pandas is not available.
     print("Then restart the program.")
     exit()
 
-try:  # Check if matplotlib is available for creating charts.
+try:  # Check if matplotlib is available for creating chartss.
     import matplotlib.pyplot as plt # Matplotlib helps me create charts to understand the data
 except ImportError: # Show error message if matplotlib is not available.
     print("ERROR: matplotlib is not installed.")
@@ -118,7 +118,7 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else:
         print(f"{unconverted_amount} Amount (USD) values could not be converted.")
 
-    # Check for amounts that are not missing and are zero or negative.
+    # Find amounts that are zero or negative (these are usually data errors).
     invalid_amounts = (data["Amount (USD)"].notnull()) and (data["Amount (USD)"] <= 0)
 
     # Count how many invalid amounts were found.
@@ -132,8 +132,8 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else:
         print(f"{invalid_amount_count} zero or negative Amount (USD) values found. Marked as INVALID.")
 
-    # Convert different Is Fraud values into True or False.
-    # This makes the fraud column easier to use in calculations.
+    # Convert different Is Fraud values into True/False/missing.
+    # This makes later counting and charting much simpler and safer.
     def to_boolean(value): # Define a function to convert different values into True or False for the Is Fraud column.
         if pd.isna(value): # Keeps missing values as NA instead of treating them as True or False.
             return pd.NA   # Treat unknown values as missing.
