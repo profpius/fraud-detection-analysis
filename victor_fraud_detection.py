@@ -247,7 +247,8 @@ def summarise_data(df):
     
 # ======================================================================
 # Function: plot_fraud_counts
-# Description: Bar chart of fraud vs non-fraud transaction counts.
+# Description: Creates a bar chart of fraud vs non-fraud counts.
+#              Saves the chart as a PNG file (more reliable) and also tries to display it.
 # Parameters: df (pd.DataFrame)
 # Returns: None 
 # =======================================================================
@@ -256,17 +257,20 @@ def summarise_data(df):
 def plot_fraud_counts(df):
     # Check how many transactions are marked as fraud and not fraud.
     fraud_counts = df["Is Fraud"].value_counts()
-
-    # Convert True and False into clear fraud labels so the user can easily understand the chart.
-    plt.bar(fraud_counts.index.map({True: "Fraud", False: "Not Fraud"}), fraud_counts.values)
+    # Set the size of the chart.
+    plt.figure(figsize=(7,5))
+    # Use clear labels instead of True and False on the chart\.
+    labels = fraud_counts.index.map({True: "Fraud", False: "Not Fraud", pd.NA:"Unknown"})
+    # Create a bar chart to compare the transaction types.
+    plt.bar(labels, fraud_counts.values, color = ["red", "green", "gray"])
     # Add a title to explain what the chart shows.
     plt.title("Fraud Vs Non-Fraud Transactions")
     # Label the horizontal axis to explain transaction categories.
     plt.xlabel("Transaction Type")
     # Label the vertical axis to show what the numbers represent.
     plt.ylabel("Number of transactions")
-    # Display the chart and wait until the chart window is closed before returning to the menu.
-    plt.show()
+    # Adjust the layout so everything fits properly.
+    plt.tight_layout()
 
 
 # ==============================================================================
