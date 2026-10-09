@@ -12,11 +12,12 @@
 # - Bad values become NaN and are marked "INVALID" instead of being deleted, so the user can still see that the rows existed.
 
 
-# ==================================================
+# ============================================================
 # Robust imports
-# I used try/except to show a simple error message if a package is missing,
-# instead of letting the program stop with an error.
-# ==================================================
+# I used error handling here so that if a required package
+# is missing, the user receives clear guidance on how to fix
+# the problem instead of an unexplained error.
+# ============================================================
 
 
 try: # Check if pandas is available for working with the data.
@@ -36,15 +37,17 @@ except ImportError: # Show error message if matplotlib is not available.
     exit()
     
 
-# Store the dataset filename in a variable for easy reuse when loading the fraud detection data.
+# I keep the filename in one variable so that the data source can be changed in
+# one place without searching through the rest of the program.
 file_name =  "fraud_detection_data.csv"
 
-# Columns the script needs. Checked during load so a mismatch is caught early.
+# I identify the required columns in advance so that a file with an unexpected 
+# structure can be rejected before later operations attempt to use the columns
+# that are not available.
 required_columns = ["Timestamp", "Amount (USD)", "Is Fraud"]
 
-# Clear marker for rows that could not be fully cleaned. Chosen so it is
-# obvious when inspecting the data later and will not be mistaken for real data.
-# This is used instead of deleting rows so the user can see that the row existed and investigate it further.
+# I use a clear text marker so that records with data-quality problems can be
+# identified and investigated rather than silently treated as reliable records.
 bad_value_marker = "INVALID"
 
 # ============================================================================================
@@ -55,6 +58,8 @@ bad_value_marker = "INVALID"
 # Returns : pd.DataFrame or None if the file cannot be read / columns are missing.
 # ============================================================================================
 
+# I separate loading into a function so that file validation is handled in one place and the menu
+# can use the same loading process whenever the user requests it.
 def load_data(file_name): # Loads the CSV file so its data can be used for cleaning, summaries and charts.
 
     try: # Attempts to read the CSV file so the program can work with its data.
@@ -89,10 +94,12 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
 # ============================================================================================
 
 def clean_data(df): # Cleans the fraud detection data so it is ready for analysis and visualisation.
+    # I work on a copy to preserve the original dataset, allowing the records to be checked again
+    # if cleaning changes their values or identifies problem.
     data = df.copy() # Keeps the original data safe so it is not affected if cleaning is repeated.
 
-    # Changes the Timestamp column into dates and times so they can be used for analysis.
-    # Use errors="coerce" so incorrect dates become NaT instead of stopping the program.
+    # I convert timestamps into a consistent date format so that invalid dates can be identified
+    # and the data is more suitable for further analysis.
     data["Timestamp"] = pd.to_datetime(data["Timestamp"], errors="coerce") 
 
     # Count missing timestamps after conversion to identify dates that couldn't be processed.
@@ -103,8 +110,8 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else: # Informs the user how many timestamps could not be converted.
         print(f"{unconverted_dates} timestamps could not be converted.")
 
-    # Convert Amount (USD) to numeric values for accurate summaries and charts.
-    # Use errors="coerce" so invalid values become NaN instead of stopping the script.
+    # I convert amounts to numeric values so that statistical calculations are meaningful
+    # and invaid entries can be identified without stopping the cleaning process.
     data["Amount (USD)"] = pd.to_numeric(data["Amount (USD)"], errors="coerce")
 
     # Count how many Amount (USD) values could not be converted and became NaN.
@@ -118,7 +125,8 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else:
         print(f"{unconverted_amount} Amount (USD) values could not be converted.")
 
-    # Find amounts that are zero or negative (these are usually data errors).
+    # I flag zero or negative transaction amounts for review because they may represent
+    # data-quality problems and could affect the interpolation of transaction statistics.
     invalid_amounts = (data["Amount (USD)"].notnull()) & (data["Amount (USD)"] <= 0)
 
     # Count how many invalid amounts were found.
@@ -132,8 +140,8 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else:
         print(f"{invalid_amount_count} zero or negative Amount (USD) values found. Marked as INVALID.")
 
-    # Convert different Is Fraud values into True/False/missing.
-    # This makes later counting and charting much simpler and safer.
+    # I standardise different representations of fraud labels so that values such as True, 1, and yes
+    # can be treated consistently during counting and comparison.
     def to_boolean(value): # Define a function to convert different values into True or False for the Is Fraud column.
         if pd.isna(value): # Keeps missing values as NA instead of treating them as True or False.
             return pd.NA   # Treat unknown values as missing.
@@ -162,8 +170,8 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     # This keeps the original data available for the user to inspect later.
     data["Data Status"] = "OK" # Start with all rows marked as OK.
 
-    # Find rows where the timestamp, amount, or fraud label is missing,
-    # or where the amount is zero or negative, and mark them as INVALID.
+    # I identify problamatic records using the key fields needed for analysis so that incomplete 
+    # or unreliable transactions are not mistaken for valid records.
     bad_rows = (data["Timestamp"].isnull() | data["Amount (USD)"].isnull() | data["Is Fraud"].isnull() | invalid_amounts)
     data.loc[bad_rows, "Data Status"] = bad_value_marker # Mark the identified rows as INVALID.
 
@@ -171,8 +179,8 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     print(f"Rows marked '{bad_value_marker}': {bad_rows.sum()}")
 
 
-    # Check for duplicate transactions without removing them, since repeated 
-    # transactions may be genuine and should be investigated before deciding to delete them.
+    # I identify duplicate records without automatically deleting them because repeated transactions 
+    # may require investigation before a decision is made about removing them.
     duplicate_rows = data.duplicated().sum()
 
     if duplicate_rows == 0: # Check if there are no duplicate transactions.
