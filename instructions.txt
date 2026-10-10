@@ -7,10 +7,11 @@ FILES NEEDED (put both in the SAME folder)
 
 WHAT THE SCRIPT DOES:
   1. Loads data from a csv file
-  2. Cleans the data (fixes dates and amounts, convert the Is Fraud column,
+  2. Cleans the data (fixes dates and amounts, converts the Is Fraud column,
      marks problem rows as INVALID, checks for duplicates)
-  3. Summarises the data
-  4. Draws a chart of fraud vs non-fraud transactions and saves it as PNG file
+  3. Summarises the data (overall, time, amount, merchant, location)
+  4. Draws charts (fraud counts, fraud by month, amount histogram,
+     box plot, fraud by merchant/location) and saves them as PNG files
   5. Shows a text menu so you can repeat any of these steps
 
 Written and tested with Python 3.14.2. Any recent Python 3
@@ -40,7 +41,7 @@ STEP 2 - INSTALL THE PACKAGES
 This script uses two packages that do not come with Python:
 
     pandas       - loads and works with csv data
-    matplotlib   - draws the chart
+    matplotlib   - draws the charts
 
 Install both with ONE command in a terminal:
 
@@ -87,8 +88,8 @@ Type a number (1-5) and press Enter:
 
     1 = Load the fraud detection data
     2 = Clean the fraud detection data
-    3 = Summarise the fraud detection data
-    4 = Visualise the fraud detection data (saves a PNG chart)
+    3 = Summarise the fraud detection data (all summaries in one go)
+    4 = Visualise the fraud detection data (opens a chart sub-menu)
     5 = Exit
 
 The menu comes back after each choice until you pick 5.
@@ -96,20 +97,73 @@ The menu comes back after each choice until you pick 5.
 IMPORTANT
   - The menu starts with NO data loaded, so choose 1 first.
     Choices 2 to 4 will show "No data loaded. Please load the data first (Option 1)" until you do.
-  - After choosing 4 the chart is saved as fraud_counts_chart.png.
-    The script also tries to open the chart window. Close the window to return to the menu.
+  - Option 3 runs every summary at once (overall, time, amount, merchant, location).
+  - Option 4 opens a short sub-menu so you can pick one chart or run all.
+    Charts are saved as PNG files in the same folder. The script also tries
+    to open a chart window. Close the window to return to the menu.
     If the window cannot open (common in some environments), the PNG file is still created.
   - Entering anything other than 1 to 5 shows
     "Invalid choice" and asks again.
   - If pandas or matplotlib is missing, the script stops with a clear message telling you how to install them.
 
+---------------------------------------------
 WHAT YOU SHOULD SEE
-  Choice 1: "File has been found.", then the number of rows and
-            columns, then the first 5 rows.
-  Choice 2: Messages about timestamps, amounts, fraud labels, INVALID rows, and duplicates.
-  Choice 3: Amount statistics, fraud counts, fraud percentage, and average amount for
-            fraudulent vs legitimate transactions.
-  Choice 4: A message that the chart has been saved, and (if possible) the chart window opens.
+---------------------------------------------
+Choice 1 (Load):
+  "File has been found.", then the number of rows and columns,
+  then the first 5 rows.
+
+Choice 2 (Clean):
+  Messages about timestamps, amounts, fraud labels,
+  INVALID rows, and duplicates.
+
+Choice 3 (Summarise) — prints all of the following:
+
+  Overall
+    - Number of INVALID vs OK rows
+    - Total money lost to fraud
+    - Fraud as a percentage of transaction count and of total value
+
+  Time
+    - Earliest and latest transaction dates
+    - Fraud count and fraud rate by month
+    - Fraud by year
+    - Fraud by day of week
+    - Fraud by hour of day
+
+  Amount
+    - Mean, median, min and max for fraudulent vs legitimate transactions
+    - Fraud rate by amount bands (under 2,500 / 2,500-5,000 / etc.)
+    - Top 5 largest transactions and whether they were fraud
+    - Outliers (amounts more than 3 standard deviations above the mean)
+
+  Merchant (only if a Merchant column exists in the CSV)
+    - Top 10 merchants by number of transactions
+    - Merchants with the most fraud (count)
+    - Merchants with the highest fraud rate (only those with 2 or more transactions)
+    - Total value of fraud per merchant
+
+  Location (only if a Location or City column exists in the CSV)
+    - Locations with the most fraud
+    - Fraud rate per location (min 2 transactions)
+
+  Note: With a small dataset (~100 rows), merchant and location groups
+  can be tiny. A high rate on 1-2 transactions is weak evidence —
+  look at count and rate together.
+
+Choice 4 (Visualise) — chart sub-menu:
+
+    1 = Fraud vs Non-Fraud counts (bar)     -> fraud_counts_chart.png
+    2 = Fraud by Month (bar)                -> fraud_by_month_chart.png
+    3 = Histogram of amounts                -> amount_histogram.png
+    4 = Box plot: amount by fraud status    -> amount_boxplot_fraud.png
+    5 = Fraud by Merchant (bar)             -> fraud_by_merchant_chart.png
+    6 = Fraud by Location (bar)             -> fraud_by_location_chart.png
+    7 = Run ALL charts
+    8 = Back to main menu
+
+  Each chart is saved as a PNG in the same folder.
+  Options 5 and 6 only work if the matching column exists in the CSV.
 
 ---------------------------------------------
 USING A DIFFERENT CSV FILE
@@ -125,10 +179,34 @@ must use them or the column names must be changed in the code:
     Amount (USD)
     Is Fraud   (values must be True / False, 1/0, or yes/no, etc.)
 
+Optional columns (used automatically if present):
+
+    Merchant / merchant / Merchant Name / merchant_name
+    Location / location / City / city / Transaction City / transaction_city
+
+If these optional columns are missing, the script skips the
+merchant and location sections with a clear message instead of crashing.
+
 ---------------------------------------------
 OUTPUT FILES
 ---------------------------------------------
 - The original CSV is never changed.
 - Cleaning only affects the data while the script is running.
-- Choice 4 creates a file called fraud_counts_chart.png in the same folder.
+- Choice 4 creates PNG chart files in the same folder, for example:
+    fraud_counts_chart.png
+    fraud_by_month_chart.png
+    amount_histogram.png
+    amount_boxplot_fraud.png
+    fraud_by_merchant_chart.png
+    fraud_by_location_chart.png
 
+---------------------------------------------
+SUGGESTED ORDER OF USE
+---------------------------------------------
+1. Load the data (option 1)
+2. Clean the data (option 2)
+3. Summarise (option 3) — read the printed tables
+4. Visualise (option 4) — generate the charts you need
+5. Exit when finished
+
+You can re-run Clean, Summarise or Visualise as many times as you like after loading.
