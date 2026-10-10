@@ -1135,7 +1135,7 @@ while True:
         if not is_cleaned:
             print("The data has not been cleaned yet. Cleaning it now....")
             df = clean_data(df)
-        is_cleaned = True
+            is_cleaned = True
 
     # Run all summaries using the current dataset when option 3 is selected.
     if choice == "3":
