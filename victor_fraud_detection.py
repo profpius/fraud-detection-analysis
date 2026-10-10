@@ -891,50 +891,231 @@ def chart_fraud_by_location(df):
 
     # Save the chart and attempt to display it using the shared chart-handling function.
     _save_and_show("fraud_by_location_chart.png")
-# ==============================================================================
-# Function: show_menu
-# Description: Print the numbered menu options.
+
+# ============================================================================================
+# Function: show_main_menu
+# Description: Print the numbered options of the main menu.
 # Parameters: none
 # Returns: None
-# ==============================================================================
-def show_menu(): # Define a function to display the available options to the user.
-    print("1. Load the fraud detection data") # Display option 1 for loading the fraud detection data.
-    print("2. Clean the fraud detection data") # Display option 2 for cleaning the loaded data.
-    print("3. Summarise the fraud detection data") # Display option 3 for showing a summary of the data.
-    print("4. Visualise the fraud detection data") # Display option 4 for creating charts from the data.
-    print("5. Exit") # Display option 5 for closing the program.
+# ============================================================================================
+def show_main_menu():
+    # Display a clear heading so the user can recognise the main menu.
+    print("\n========== MAIN MENU ==========")
 
-# ==============================================================
+    # Offer data loading as the first option because the program needs data
+    # before the user can clean, summarise or visualise it.
+    print("1. Load the fraud detection data")
+
+    # Allow the user to clean the loaded data before analysing it,
+    # helping reduce the effect of missing or unsuitable records.
+    print("2. Clean the fraud detection data")
+
+    # Group all summary options together so the user can review key findings
+    # without having to run each summary separately.
+    print("3. Summarise the fraud detection data  (all summaries)")
+
+    # Provide a separate visualisation menu so the user can choose
+    # which chart to display without overcrowding the main menu.
+    print("4. Visualise the fraud detection data  (sub-menu)")
+
+    # Give the user a clear exit option so they can end the program
+    # when they have finished using its features.
+    print("5. Exit")
+# ============================================================================================
+# Function: summarise_all
+# Description: Run every summary in one go: overall, time, amount, merchant and location.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def summarise_all(df):
+    """Run every summary in one go — overall, time, amount, merchant, location."""
+
+    # Run the overall summary first to give the user a general picture
+    # of the dataset before examining specific patterns.
+    summary_overall(df)
+
+    # Analyse transactions by time to help identify periods when fraud occurs more often.
+    summary_time(df)
+
+    # Examine transaction amounts to compare fraudulent and legitimate transactions
+    # and identify patterns in their values.
+    summary_amount(df)
+
+    # Analyse merchant information to identify merchants associated with more fraud cases.
+    summary_merchant(df)
+
+    # Examine location information to identify geographical patterns in recorded fraud.
+    summary_location(df)
+
+# ============================================================================================
+# Function: show_chart_menu
+# Description: Print the numbered options of the visualisation sub-menu.
+# Parameters: none
+# Returns: None
+# ============================================================================================
+def show_chart_menu():
+    # Display a separate heading to distinguish chart options from the main menu.
+    print("\n------ VISUALISE SUB-MENU ------")
+
+    # Offer a comparison of fraudulent and legitimate transaction counts
+    # so the user can see how many transactions belong to each category.
+    print("1. Fraud vs Non-Fraud counts (bar)")
+
+    # Allow the user to examine how fraud counts change over different months.
+    print("2. Fraud by Month (bar)")
+
+    # Offer a histogram because it helps the user understand the distribution
+    # of transaction amounts and see where values are concentrated.
+    print("3. Histogram of Amounts")
+
+    # Offer a box plot to compare the median, spread and potential outliers
+    # in fraudulent and legitimate transaction amounts.
+    print("4. Box plot: Amount by Fraud status")
+
+    # Allow the user to compare fraud counts across merchants.
+    # This option depends on the dataset containing a recognised merchant column.
+    print("5. Fraud by Merchant (bar) — needs Merchant column")
+
+    # Allow the user to compare fraud counts across locations.
+    # This option depends on the dataset containing a recognised location or city column.
+    print("6. Fraud by Location (bar) — needs Location/City column")
+
+    # Provide a shortcut to generate every available chart without selecting each one individually.
+    print("7. Run ALL charts")
+
+    # Let the user return to the main menu without having to restart the program.
+    print("8. Back to main menu")
+
+# ============================================================================================
+# Function: run_chart_submenu
+# Description: Keep showing the chart menu and run the chosen chart until the user
+#              chooses to go back to the main menu.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def run_chart_submenu(df):
+    # Keep the chart menu available until the user chooses to return
+    # or interrupts the program, allowing multiple charts to be viewed in one session.
+    while True:
+
+        # Redisplay the available chart options each time the loop repeats
+        # so the user can easily choose another chart.
+        show_chart_menu()
+
+        # Handle keyboard interruption or closed input safely so the program
+        # can return to the main menu instead of ending unexpectedly.
+        try:
+            choice = input("Chart choice (1-8): ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nReturning to main menu.")
+            return
+
+        # Return immediately when the user chooses option 8,
+        # avoiding unnecessary chart processing.
+        if choice == "8":
+            return
+
+        # Match the user's choice to the relevant chart function
+        # so only the selected visualisation is generated.
+        if choice == "1":
+            chart_fraud_counts(df)
+        elif choice == "2":
+            chart_fraud_by_month(df)
+        elif choice == "3":
+            chart_histogram_amounts(df)
+        elif choice == "4":
+            chart_box_amount_by_fraud(df)
+        elif choice == "5":
+            chart_fraud_by_merchant(df)
+        elif choice == "6":
+            chart_fraud_by_location(df)
+
+        # Run every chart in sequence when the user chooses option 7,
+        # providing a convenient way to review all available visualisations.
+        elif choice == "7":
+            chart_fraud_counts(df)
+            chart_fraud_by_month(df)
+            chart_histogram_amounts(df)
+            chart_box_amount_by_fraud(df)
+            chart_fraud_by_merchant(df)
+            chart_fraud_by_location(df)
+
+        # Reject unrecognised input and explain the valid range
+        # so the user can correct their choice without restarting the program.
+        else:
+            print("Invalid choice. Enter 1-8.")
+
+# ===========================================================
 # Main program - menu is the only entry point
-# ==============================================================
+# ===========================================================
 
-df = None # Start with no data so the program knows when a file has not been loaded yet.
+# Start with no dataset loaded so the program can check whether
+# data is available before allowing cleaning, summaries or charts.
+df = None
 
-while True: # Keeps showing the menu until the user chooses to exit.
-    show_menu()
-    try: # Ask the user to select an option from the menu.
-        choice = input("Enter your choice (1-5): ").strip() # Store the user's choice and remove extra spaces.
-    except (KeyboardInterrupt, EOFError): # Handle Ctrl+C or closed input so the program exits instead of getting stuck.
-        print("\nExiting.") # Tells the user the program is closing.
+# Keep the program running until the user chooses to exit
+# or interrupts the input process.
+while True:
+
+    # Display the main menu each time the loop repeats
+    # so the user can continue using different program features.
+    show_main_menu()
+
+    # Read the user's choice and remove surrounding whitespace
+    # so accidental spaces do not cause an otherwise valid choice to fail.
+    try:
+        choice = input("Enter your choice (1-5): ").strip()
+
+    # Handle interrupted or unavailable input gracefully
+    # rather than allowing the program to terminate with an unhandled error.
+    except (KeyboardInterrupt, EOFError):
+        print("\nExiting.")
         break
 
-    if choice not in [ "1", "2", "3", "4", "5"]: # Check if the user entered a valid menu option before processing their choice.
-        print("Invalid choice. Please enter a number from 1 to 5.") # Ask the user to enter a valid option.
-        continue # Return to the menu so the user can enter a valid choice.
-    if choice == "5": # Check if the user selected option 5 to exit the program.
+    # Check the choice before processing it so only supported menu options
+    # can trigger program actions.
+    if choice not in ["1", "2", "3", "4", "5"]:
+        print("Invalid choice. Please enter a number from 1 to 5.")
+
+        # Restart the loop to show the menu again without running an action
+        # for an invalid selection.
+        continue
+
+    # Exit when the user chooses option 5 so the program does not
+    # keep displaying the menu after the user has finished.
+    if choice == "5":
         print("Goodbye.")
-        break # Stop the menu loop and end the program.
-    if choice == "1": 
-        loaded = load_data(file_name) # Load the data and store the result temporarily.
-        if loaded is not None: # Check that the data loaded successfully.
-            df = loaded # Replace the working data only when loading succeeds.
-        continue # Return to the menu after attempting to load the data.
-    if df is None: # Check whether the data has been loaded before using options 2-4.
-        print("No data loaded. Please load the data first (Option 1).") # Tell the user that no data is available.
-        continue # Return to the menu without running the selected option.
+        break
+
+    # Load the dataset when option 1 is selected.
+    if choice == "1":
+        loaded = load_data(file_name)
+
+        # Replace the current dataset only when loading succeeds,
+        # so a failed attempt does not discard data that was already loaded.
+        if loaded is not None:
+            df = loaded
+
+        # Return to the menu after loading instead of continuing into
+        # the cleaning, summary or chart actions during the same iteration.
+        continue
+
+    # Require a dataset before allowing the remaining operations,
+    # because those operations depend on having data to process.
+    if df is None:
+        print("No data loaded. Please load the data first (Option 1).")
+        continue
+
+    # Clean the dataset and store the returned result as the current data,
+    # so later summaries and charts can use the cleaned version.
     if choice == "2":
-        df = clean_data(df) # Clean the data and save the cleaned result back into df.
+        df = clean_data(df)
+
+    # Run all summaries using the current dataset when option 3 is selected.
     elif choice == "3":
-        summarise_data(df) # Display a summary of the data.
+        summarise_all(df)
+
+    # Open the chart sub-menu when option 4 is selected,
+    # allowing the user to choose individual charts or run them all.
     elif choice == "4":
-        plot_fraud_counts(df) # Display a chart showing the fraud counts.
+        run_chart_submenu(df)
