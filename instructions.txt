@@ -97,6 +97,9 @@ The menu comes back after each choice until you pick 5.
 IMPORTANT
   - The menu starts with NO data loaded, so choose 1 first.
     Choices 2 to 4 will show "No data loaded. Please load the data first (Option 1)" until you do.
+  - If you choose Summarise (3) or Visualise (4) without cleaning first,
+    the script automatically cleans the data for you and tells you it is doing so.
+    You can still choose option 2 yourself if you want to see the cleaning messages first.
   - Option 3 runs every summary at once (overall, time, amount, merchant, location).
   - Option 4 opens a short sub-menu so you can pick one chart or run all.
     Charts are saved as PNG files in the same folder. The script also tries
@@ -121,7 +124,7 @@ Choice 3 (Summarise) — prints all of the following:
 
   Overall
     - Number of INVALID vs OK rows
-    - Total money lost to fraud
+    - Total money lost to fraud (total value of fraudulent transactions)
     - Fraud as a percentage of transaction count and of total value
 
   Time
@@ -204,7 +207,7 @@ OUTPUT FILES
 SUGGESTED ORDER OF USE
 ---------------------------------------------
 1. Load the data (option 1)
-2. Clean the data (option 2)
+2. Clean the data (option 2)   [optional — the script will auto-clean if you skip this]
 3. Summarise (option 3) — read the printed tables
 4. Visualise (option 4) — generate the charts you need
 5. Exit when finished
