@@ -10,7 +10,11 @@
 # - Each step is in a separate function so the menu stays simple and the same code can be used more than once.
 # - Required columns are checked during load so a bad file never becomes the working data.
 # - Bad values become NaN and are marked "INVALID" instead of being deleted, so the user can still see that the rows existed.
-
+# - Option 3 runs every summary in one go (overall, time, amount, merchant, location).
+# - Option 4 still uses a short sub-menu for charts so the user can pick one or run all.
+# - Optional columns (Merchant, Location/City) are detected at runtime; if missing, those analyses are skipped with a clear message.
+# - Dataset note: typical size is ~100 rows , so merchant/location groups can be very small.
+# - Counts and rates are both shown so the user can judge risk more carefully than counts alone.
 
 # ============================================================
 # Robust imports
@@ -37,18 +41,27 @@ except ImportError: # Show error message if matplotlib is not available.
     exit()
     
 
-# I keep the filename in one variable so that the data source can be changed in
-# one place without searching through the rest of the program.
+# Keep the filename in onne place so it can be changed easily.
 file_name =  "fraud_detection_data.csv"
 
-# I identify the required columns in advance so that a file with an unexpected 
-# structure can be rejected before later operations attempt to use the columns
-# that are not available.
+# Required columns are checked to make sure the dataset has the data needed for analysis.
 required_columns = ["Timestamp", "Amount (USD)", "Is Fraud"]
 
-# I use a clear text marker so that records with data-quality problems can be
+# Use a clear text marker so that records with data-quality problems can be
 # identified and investigated rather than silently treated as reliable records.
 bad_value_marker = "INVALID"
+
+# Include alternative names to help recognise optional columns in different datasets.
+optional_merchant_names = ["Merchant", "merchant", "Merchant Name", "merchant_name"]
+optional_location_names = ["Location", "location", "City", "city", "Transaction City", "transaction_city"]
+
+
+def find_optional_column(df, candidates): # Define a function that accepts a dataset and list of possible column names.
+    """Find optional columns even when their names differ between datasets.""" # Explain the purpose of the function.
+    for name in candidates: # Go through each possible column name in the list.
+        if name in df.columns: # Check whether the current name exists in the dataset.
+            return name # Return the name as soon as a matching column is found.
+    return None # Return None if no matching column exists.
 
 # ============================================================================================
 # Function: load_data
@@ -81,7 +94,7 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
         print("Expected columns are:", ", ".join(required_columns)) # Shows the columns the file is expected to contain for clarity.
         return None # Stops the function if the required columns are missing.
     print("File has been found. Required columns are present. Data loaded successfully.")
-    print(df.shape)
+    print(f"Shape: {df.shape}")
     print(df.head())
     return df
 
@@ -191,67 +204,142 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     
     return data # Return the cleaned data so the other functions can use it.
 
+# Helper function to select rows that contain the essential data for analysis.
+
+def get_valid(df):
+    """Keep records with the required values so incomplete data does not affect analysis."""
+
+    return df[  # Select only the rows that meet all three conditions.
+        df["Timestamp"].notna()  # Check that the transaction has a timestamp.
+        & df["Amount (USD)"].notna()  # Check that the transaction has an amount.
+        & df["Is Fraud"].notna()  # Check that the fraud status is available.
+    ].copy()  # Create a separate copy of the selected rows.
+
 # ============================================================================================
-# Function: summarise_data
-# Description: Print amount statistics and fraud counts and fraud percentage to give the user a quick overview of the data.
-# Parameters: df (pd.DataFrame)
+# Function: summary_overall
+# Description: Print the number of INVALID and OK rows, then the total value of fraudulent
+#              transactions and the fraud share of transaction count and value.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
 # Returns: None
 # ============================================================================================
+def summary_overall(df):
+    """Summarise fraud levels and data quality for an overall view of the dataset."""
+    print("\n=== OVERALL SUMMARY ===")
 
-# Define a function to display a summary of the fraud detection data so the user can quickly understand the key information.
-def summarise_data(df):
-
-    # Use only the Amount (USD) column to show clear numerical statistics.
-    # Summarising the whole DataFrame would include non-numeric columns and be less clear.
-    print("Amount statistics:")
-
-    # Display descriptive statistics for the Amount (USD) column, including count, mean,standard deviation,
-    # minimum, maximum, and quartiles for the user to understand the distribution of transaction amounts.
-    print(df["Amount (USD)"].describe())
-
-    # Print an empty line to make the output easier to read by separating the amount statistics from the fraud counts.
-    print()
-
-    # Display how many transactions are fraudulent and how many are not, so the user can see the balance between the two groups.
-    # dropna=False keeps missing fraud labels in the count instead of leaving them out.
-    print("Fraud count:")
-    print(df["Is Fraud"].value_counts(dropna=False))
-    print()
-
-    # Calculate the percentage of transactions marked as fraud.
-    # Only use True/False values so missing labels do not affect the percentage calculation.
-    valid_labels = df["Is Fraud"].dropna() # Remove missing fraud labels to avoid skewing the percentage calculation.
-
-    # Check if there are no valid fraud labels to calculate a percentage.
-    if len(valid_labels) == 0:
-        print("No valid fraud labels to calculate a percentage.")
-
-    # If valid labels exist, calculate and display the fraud percentage.
+    # Check data quality so users can see how many records may be unreliable.
+    if "Data Status" in df.columns:
+        invalid_count = (df["Data Status"] == bad_value_marker).sum()
+        print(f"INVALID rows (after cleaning): {invalid_count}")
+        print(f"OK rows: {(df['Data Status'] == 'OK').sum()}")
     else:
-        fraud_rate = valid_labels.mean() * 100 # Calculate the percentage of fraudulent transactions from the valid labels.
-        print(f"Fraud percentage: {fraud_rate:.1f}%") # Display the fraud percentage to one decimal place for easier reading.
+        print("Data Status column not found (run Clean first for INVALID counts).")
 
-    # Compare the average amount of fradulent and legitimate.
-    # This helps me see which group has higher transaction values.
-    print()
-    print("Average amount by fraud status:")
+    # Exclude rows missing a timestamp, amount or fraud status, since the
+    # calculations below cannot use incomplete records.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid rows for overall calculations.")
+        return
 
-    # Calculate the average transaction amount for each group.
-    fraud_avg = df[df["Is Fraud"] == True] ["Amount (USD)"].mean()
-    legit_avg = df[df["Is Fraud"] == False] ["Amount (USD)"].mean()
+    # Count valid transactions as the denominator for the fraud percentage.
+    total_tx = len(valid)
+    fraud_tx = (valid["Is Fraud"] == True).sum()
 
-    # Check if an average value was found for fradulent transactions.
-    if pd.notna(fraud_avg):
-        print(f"Fraudulent transactions: {fraud_avg:.2f}")
-    else:
-        print("Fraudulent transactions: No data")
+    # Calculate the percentage of transactions marked as fraudulent for easier comparison.
+    # The "if total_tx else 0" guards against division by zero.
+    fraud_pct_count = (fraud_tx / total_tx * 100) if total_tx else 0
 
-    # Check if an average value was found for legitimate transactions.
-    if pd.notna(legit_avg):
-        print(f"Legitimate transactions: {legit_avg:.2f}")
-    else:
-        print("Legitimate transactions: No data")
-            
+    # Calculate the total transaction value as a baseline for assessing financial impact.
+    total_value = valid["Amount (USD)"].sum()
+
+    # Sum the full amount of every fraud-flagged transaction. This assumes none of
+    # the money was blocked, refunded or recovered.
+    fraud_value = valid.loc[valid["Is Fraud"] == True, "Amount (USD)"].sum()
+
+    # Calculate fraud's share of transaction value to show its potential financial significance.
+    # The "if total_value else 0" guards against division by zero.
+    fraud_pct_value = (fraud_value / total_value * 100) if total_value else 0
+
+    print(f"\nTotal valid transactions: {total_tx}")
+    print(f"Fraudulent transactions:  {fraud_tx}  ({fraud_pct_count:.1f}% of count)")
+    print(f"Total transaction value:  ${total_value:,.2f}")
+    print(f"Total value of fraudulent transactions: ${fraud_value:,.2f}  ({fraud_pct_value:.1f}% of value)")
+
+    # Highlight that fraud frequency and financial impact can tell different stories.
+    print("Note: fraud share of value can differ from share of count when fraud amounts are larger/smaller.")
+
+
+# ============================================================================================
+# TIME summaries
+# ============================================================================================
+
+def summary_time(df):
+    """Compare fraud patterns across time periods to help identify possible trends."""
+    print("\n=== TIME SUMMARY ===")
+
+    # Use complete records so missing essential values do not affect the time analysis.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid rows for time analysis.")
+        return
+
+    # Establish the time span covered by the dataset to give context to the results.
+    earliest = valid["Timestamp"].min()
+    latest = valid["Timestamp"].max()
+    print(f"Earliest transaction: {earliest}")
+    print(f"Latest transaction:   {latest}")
+
+    # Group transactions by month to identify changes in fraud frequency over time.
+    valid["YearMonth"] = valid["Timestamp"].dt.to_period("M")
+    monthly = valid.groupby("YearMonth").agg(
+        Total=("Is Fraud", "count"),
+        Fraud_Count=("Is Fraud", "sum"),
+    )
+    # Calculate the monthly fraud rate so months with different transaction volumes can be compared.
+    monthly["Fraud_Rate_%"] = (monthly["Fraud_Count"] / monthly["Total"] * 100).round(1)
+    print("\nFraud by Month (count + rate):")
+    print(monthly.to_string())
+
+    # Compare years to help reveal longer-term changes in fraud patterns.
+    valid["Year"] = valid["Timestamp"].dt.year
+    yearly = valid.groupby("Year").agg(
+        Total=("Is Fraud", "count"),
+        Fraud_Count=("Is Fraud", "sum"),
+    )
+    # Use a percentage to compare years even when their transaction totals differ.
+    yearly["Fraud_Rate_%"] = (yearly["Fraud_Count"] / yearly["Total"] * 100).round(1)
+    print("\nFraud by Year (count + rate):")
+    print(yearly.to_string())
+
+    # Examine weekdays to see whether fraud rates vary across the week.
+    valid["DayOfWeek"] = valid["Timestamp"].dt.day_name()
+    # Keep weekdays in calendar order so the output is easier to interpret.
+    day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    dow = valid.groupby("DayOfWeek").agg(
+        Total=("Is Fraud", "count"),
+        Fraud_Count=("Is Fraud", "sum"),
+    )
+    # Calculate the fraud rate for each day to account for differences in transaction volume.
+    dow["Fraud_Rate_%"] = (dow["Fraud_Count"] / dow["Total"] * 100).round(1)
+    # Include only days present in the data while preserving the normal weekly order.
+    dow = dow.reindex([d for d in day_order if d in dow.index])
+    print("\nFraud by Day of Week (count + rate):")
+    print(dow.to_string())
+
+    # Examine transaction hours to identify possible periods when fraud is more common.
+    valid["Hour"] = valid["Timestamp"].dt.hour
+    hourly = valid.groupby("Hour").agg(
+        Total=("Is Fraud", "count"),
+        Fraud_Count=("Is Fraud", "sum"),
+    )
+    # Compare hourly fraud rates rather than counts alone, since transaction volumes may vary.
+    hourly["Fraud_Rate_%"] = (hourly["Fraud_Count"] / hourly["Total"] * 100).round(1)
+    print("\nFraud by Hour of Day (0=midnight … 23=11pm) — count + rate:")
+    print(hourly.to_string())
+
+    # Encourage further investigation of unusual time patterns without assuming they prove fraud.
+    print("Tip: higher rates late at night or early morning can be a red flag.")
+    
     
 # ======================================================================
 # Function: plot_fraud_counts
