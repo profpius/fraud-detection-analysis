@@ -23,22 +23,23 @@
 # the problem instead of an unexplained error.
 # ============================================================
 
-
-try: # Check if pandas is available for working with the data.
+# Use try/except to check whether pandas and matplotlib is installed.
+# If they are missing, display an error message and explain how to install them.
+try: 
     import pandas as pd # Pandas helps me work with the data in the CSV file.
 except ImportError: # Show error message if pandas is not available.
     print("ERROR: pandas is not installed.")
     print("Please run: pip install pandas")
     print("Then restart the program.")
-    exit()
+    exit() # Stop the program because pandas is required for data analysis.
 
-try:  # Check if matplotlib is available for creating chartss.
+try:  
     import matplotlib.pyplot as plt # Matplotlib helps me create charts to understand the data
 except ImportError: # Show error message if matplotlib is not available.
     print("ERROR: matplotlib is not installed.")
     print("Please run: pip install matplotlib")
     print("Then restart the program.")
-    exit()
+    exit() # Stop the program because pandas is required for data analysis.
     
 
 # Keep the filename in onne place so it can be changed easily.
@@ -61,7 +62,8 @@ def find_optional_column(df, candidates): # Define a function that accepts a dat
     for name in candidates: # Go through each possible column name in the list.
         if name in df.columns: # Check whether the current name exists in the dataset.
             return name # Return the name as soon as a matching column is found.
-    return None # Return None if no matching column exists.
+    return None # Return None if no matching column exists, this is because the column is optional,
+                # so the program can continue running without it instead of raising an error and stopping.
 
 # ============================================================================================
 # Function: load_data
@@ -92,11 +94,11 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
     if missing_columns: # Informs the user which columns are missing.
         print(f"Missing required columns: {', '.join(missing_columns)}. Please check the CSV file.")
         print("Expected columns are:", ", ".join(required_columns)) # Shows the columns the file is expected to contain for clarity.
-        return None # Stops the function if the required columns are missing.
+        return None # Reject the file because it does not have the columns needed for analysis.
     print("File has been found. Required columns are present. Data loaded successfully.")
     print(f"Shape: {df.shape}")
     print(df.head())
-    return df
+    return df # Return the valid dataset so the menu can store and use it.
 
 # ============================================================================================
 # Function: clean_data
@@ -107,12 +109,13 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
 # ============================================================================================
 
 def clean_data(df): # Cleans the fraud detection data so it is ready for analysis and visualisation.
-    # I work on a copy to preserve the original dataset, allowing the records to be checked again
+    # Work on a copy to preserve the original dataset, allowing the records to be checked again
     # if cleaning changes their values or identifies problem.
     data = df.copy() # Keeps the original data safe so it is not affected if cleaning is repeated.
 
-    # I convert timestamps into a consistent date format so that invalid dates can be identified
+    # Convert timestamps into a consistent date format so that invalid dates can be identified
     # and the data is more suitable for further analysis.
+    # errors="coerce" turns invalid dates into NaT instead of crashing, allowing the program to identify and report them.
     data["Timestamp"] = pd.to_datetime(data["Timestamp"], errors="coerce") 
 
     # Count missing timestamps after conversion to identify dates that couldn't be processed.
@@ -123,8 +126,9 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else: # Informs the user how many timestamps could not be converted.
         print(f"{unconverted_dates} timestamps could not be converted.")
 
-    # I convert amounts to numeric values so that statistical calculations are meaningful
-    # and invaid entries can be identified without stopping the cleaning process.
+    # Convert amounts to numeric values. 
+    # errors="coerce" turns invalid amount into NaN instead of crashing, allowing the program
+    # to identify and mark those records as INVALID.
     data["Amount (USD)"] = pd.to_numeric(data["Amount (USD)"], errors="coerce")
 
     # Count how many Amount (USD) values could not be converted and became NaN.
@@ -138,7 +142,7 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     else:
         print(f"{unconverted_amount} Amount (USD) values could not be converted.")
 
-    # I flag zero or negative transaction amounts for review because they may represent
+    # Flag zero or negative transaction amounts for review because they may represent
     # data-quality problems and could affect the interpolation of transaction statistics.
     invalid_amounts = (data["Amount (USD)"].notnull()) & (data["Amount (USD)"] <= 0)
 
@@ -168,7 +172,7 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
             return False
         return pd.NA # Treats any other values as missing instead of causing an error.
 
-    # Apply the to_boolean function to every value in the Is Fraud column.
+    # Apply the to_boolean function conversion to every value in the Is Fraud column.
     data["Is Fraud"] = data["Is Fraud"].apply(to_boolean)
 
     # Count the fraud label(s) that could not be recognized and became missing values (NA).
@@ -257,7 +261,8 @@ def summary_overall(df):
     fraud_value = valid.loc[valid["Is Fraud"] == True, "Amount (USD)"].sum()
 
     # Calculate fraud's share of transaction value to show its potential financial significance.
-    # The "if total_value else 0" guards against division by zero.
+    # The "if total_value else 0" guards against division by zero, returns 0 instead of
+    # dividing by zero and causing an error.
     fraud_pct_value = (fraud_value / total_value * 100) if total_value else 0
 
     print(f"\nTotal valid transactions: {total_tx}")
@@ -295,10 +300,12 @@ def summary_time(df):
 
     # Group by month to calculate separate totals for each month instead of one overall total.
     # This helps reveal whether fraud patterns change over time.
+    # Grouping aviods writing a manual loop to count each category separately.
     monthly = valid.groupby("YearMonth").agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
 
     # Calculate the percentage of transactions marked as fraudulent in each month.
     # Rates make months with different transaction volumes easier to compare fairly.
+    # round(1) rounds the percentage to one decimal place to make the results easier to read.
     monthly["Fraud_Rate_%"] = (monthly["Fraud_Count"] / monthly["Total"] * 100).round(1)
     print("\nFraud by Month (count + rate):")
     print(monthly.to_string())
@@ -628,6 +635,7 @@ def chart_fraud_counts(df):
     fraud_counts = df["Is Fraud"].value_counts(dropna=False)
 
     # Create a figure with a suitable width and height so the chart is easy to read.
+    # A suitable size prevents the chart from looking cramped.
     plt.figure(figsize=(7, 5))
 
     # Replace Boolean values with readable category names for the chart's horizontal axis.
@@ -637,7 +645,7 @@ def chart_fraud_counts(df):
     # Convert labels to strings so unexpected or unmapped values can still be displayed.
     labels = [str(l) for l in labels]
 
-    # Build a colour list so each category can be distinguished visually.
+    # Build a colour list so each category has a colour that matches its meaning.
     colors = []
     for lab in labels:
         if lab == "Fraud":
@@ -688,10 +696,11 @@ def chart_fraud_by_month(df):
         print("No fraudulent transactions to plot by month.")
         return
 
-    # Create a wider figure so monthly labels have more room to fit.
+    # Create a wider figure to give monthly bars and their labels enough room.
+    # This is important when there are many months, as labels can otherwise overlap.
     plt.figure(figsize=(10, 5))
 
-    # Draw a bar for each month so the number of fraudulent transactions can be compared visually.
+    # Draw a bar for each month using crimson to make the fraud counts easy to see.
     monthly_fraud.plot(kind="bar", color="crimson")
 
     # Add a title and axis labels to explain what the chart shows.
