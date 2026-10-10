@@ -277,70 +277,307 @@ def summary_time(df):
     """Compare fraud patterns across time periods to help identify possible trends."""
     print("\n=== TIME SUMMARY ===")
 
-    # Use complete records so missing essential values do not affect the time analysis.
+    # Use records with the required values so missing timestamps, amounts or fraud labels
+    # do not affect the time-based calculations.
     valid = get_valid(df)
     if valid.empty:
         print("No valid rows for time analysis.")
         return
 
-    # Establish the time span covered by the dataset to give context to the results.
+    # Find the earliest and latest transactions to establish the time span covered by the data.
     earliest = valid["Timestamp"].min()
     latest = valid["Timestamp"].max()
     print(f"Earliest transaction: {earliest}")
     print(f"Latest transaction:   {latest}")
 
-    # Group transactions by month to identify changes in fraud frequency over time.
+    # Convert timestamps into monthly periods so transactions can be compared month by month.
     valid["YearMonth"] = valid["Timestamp"].dt.to_period("M")
-    monthly = valid.groupby("YearMonth").agg(
-        Total=("Is Fraud", "count"),
-        Fraud_Count=("Is Fraud", "sum"),
-    )
-    # Calculate the monthly fraud rate so months with different transaction volumes can be compared.
+
+    # Group by month to calculate separate totals for each month instead of one overall total.
+    # This helps reveal whether fraud patterns change over time.
+    monthly = valid.groupby("YearMonth").agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Calculate the percentage of transactions marked as fraudulent in each month.
+    # Rates make months with different transaction volumes easier to compare fairly.
     monthly["Fraud_Rate_%"] = (monthly["Fraud_Count"] / monthly["Total"] * 100).round(1)
     print("\nFraud by Month (count + rate):")
     print(monthly.to_string())
 
-    # Compare years to help reveal longer-term changes in fraud patterns.
+    # Extract the year from each timestamp so transactions can be compared over longer periods.
     valid["Year"] = valid["Timestamp"].dt.year
-    yearly = valid.groupby("Year").agg(
-        Total=("Is Fraud", "count"),
-        Fraud_Count=("Is Fraud", "sum"),
-    )
-    # Use a percentage to compare years even when their transaction totals differ.
+
+    # Group by year to compare yearly totals and identify possible longer-term changes in fraud.
+    yearly = valid.groupby("Year").agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Calculate the yearly fraud rate because yearly transaction volumes may differ.
     yearly["Fraud_Rate_%"] = (yearly["Fraud_Count"] / yearly["Total"] * 100).round(1)
     print("\nFraud by Year (count + rate):")
     print(yearly.to_string())
 
-    # Examine weekdays to see whether fraud rates vary across the week.
+    # Extract the weekday from each timestamp to investigate whether fraud patterns vary across the week.
     valid["DayOfWeek"] = valid["Timestamp"].dt.day_name()
-    # Keep weekdays in calendar order so the output is easier to interpret.
+
+    # Set the normal calendar order because grouped results may otherwise appear alphabetically.
     day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    dow = valid.groupby("DayOfWeek").agg(
-        Total=("Is Fraud", "count"),
-        Fraud_Count=("Is Fraud", "sum"),
-    )
-    # Calculate the fraud rate for each day to account for differences in transaction volume.
+
+    # Group by weekday to calculate fraud totals separately for each day.
+    # This makes it possible to compare weekdays and weekends.
+    dow = valid.groupby("DayOfWeek").agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Calculate the fraud rate for each day so days with different transaction volumes can be compared.
     dow["Fraud_Rate_%"] = (dow["Fraud_Count"] / dow["Total"] * 100).round(1)
-    # Include only days present in the data while preserving the normal weekly order.
+
+    # Keep only the weekdays present in the dataset while displaying them in calendar order.
     dow = dow.reindex([d for d in day_order if d in dow.index])
     print("\nFraud by Day of Week (count + rate):")
     print(dow.to_string())
 
-    # Examine transaction hours to identify possible periods when fraud is more common.
+    # Extract the hour from each timestamp to investigate possible differences throughout the day.
     valid["Hour"] = valid["Timestamp"].dt.hour
-    hourly = valid.groupby("Hour").agg(
-        Total=("Is Fraud", "count"),
-        Fraud_Count=("Is Fraud", "sum"),
-    )
-    # Compare hourly fraud rates rather than counts alone, since transaction volumes may vary.
+
+    # Group by hour to calculate separate fraud statistics for each hour rather than combining
+    # all transactions. This helps identify hours that may deserve closer investigation.
+    hourly = valid.groupby("Hour").agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Compare hourly fraud rates instead of counts alone because some hours may have more transactions.
     hourly["Fraud_Rate_%"] = (hourly["Fraud_Count"] / hourly["Total"] * 100).round(1)
     print("\nFraud by Hour of Day (0=midnight … 23=11pm) — count + rate:")
     print(hourly.to_string())
 
-    # Encourage further investigation of unusual time patterns without assuming they prove fraud.
+    # Treat unusually high rates at particular times as possible warning signs, not proof of fraud.
     print("Tip: higher rates late at night or early morning can be a red flag.")
-    
-    
+
+
+# ============================================================================================
+# AMOUNT summaries
+# ============================================================================================
+
+def summary_amount(df):
+    """Compare transaction amounts to identify possible patterns linked to fraud."""
+    print("\n=== AMOUNT SUMMARY ===")
+
+    # Use records with the required values so incomplete transactions do not affect the analysis.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid rows for amount analysis.")
+        return
+
+    # Compare fraudulent and legitimate transactions to see whether their amounts differ.
+    print("\nAmount statistics by fraud status:")
+    for label, mask in [("Fraudulent", valid["Is Fraud"] == True),
+                        ("Legitimate", valid["Is Fraud"] == False)]:
+
+        # Use a Boolean mask to select only the transactions belonging to the current group.
+        # This lets the same calculations be repeated for fraud and legitimate transactions.
+        subset = valid.loc[mask, "Amount (USD)"]
+
+        # Check for an empty group so the summary does not try to report statistics for missing data.
+        if subset.empty:
+            print(f"  {label}: No data")
+        else:
+            print(f"  {label}:")
+            print(f"    count  = {len(subset)}")
+
+            # Calculate the mean and median to compare the average and middle transaction amounts.
+            print(f"    mean   = ${subset.mean():,.2f}")
+            print(f"    median = ${subset.median():,.2f}")
+
+            # Find the minimum and maximum to show the range of transaction amounts in each group.
+            print(f"    min    = ${subset.min():,.2f}")
+            print(f"    max    = ${subset.max():,.2f}")
+
+    # Define amount ranges so transactions of different sizes can be analysed separately.
+    bins = [0, 2500, 5000, 10000, 25000, float("inf")]
+
+    # Assign readable names to the ranges so the results are easier to understand.
+    labels = ["Under 2,500", "2,500–5,000", "5,000–10,000", "10,000–25,000", "Over 25,000"]
+
+    # Place each transaction into an amount range to compare fraud patterns across transaction sizes.
+    # right=False makes each range include its lower boundary but exclude its upper boundary.
+    valid["Amount Band"] = pd.cut(valid["Amount (USD)"], bins=bins, labels=labels, right=False)
+
+    # Group transactions by amount band so each range has its own transaction and fraud counts.
+    # This helps reveal whether fraud rates differ between lower-value and higher-value transactions.
+    bands = valid.groupby("Amount Band", observed=True).agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Calculate a percentage for each range so groups with different transaction volumes can be compared fairly.
+    bands["Fraud_Rate_%"] = (bands["Fraud_Count"] / bands["Total"] * 100).round(1)
+    print("\nFraud rate by Amount Band:")
+    print(bands.to_string())
+
+    # Select the five largest transactions to make the highest-value records easier to inspect.
+    print("\nTop 5 largest transactions:")
+    top5 = valid.nlargest(5, "Amount (USD)")[["Timestamp", "Amount (USD)", "Is Fraud"]]
+    print(top5.to_string(index=False))
+
+    # Calculate the mean and standard deviation to establish a threshold for unusually large amounts.
+    mean_amt = valid["Amount (USD)"].mean()
+    std_amt = valid["Amount (USD)"].std()
+
+    # Only calculate the threshold when the standard deviation exists and is greater than zero.
+    if pd.notna(std_amt) and std_amt > 0:
+
+        # Set the threshold three standard deviations above the mean to flag unusually high amounts.
+        threshold = mean_amt + 3 * std_amt
+
+        # Select transactions above the threshold so they can be investigated further.
+        outliers = valid[valid["Amount (USD)"] > threshold]
+
+        print(f"\nOutliers (amount > mean + 3*std = ${threshold:,.2f}): {len(outliers)} found")
+
+        # Display the flagged records so their amounts and fraud labels can be checked.
+        if not outliers.empty:
+            print(outliers[["Timestamp", "Amount (USD)", "Is Fraud"]].to_string(index=False))
+    else:
+        # Explain why an outlier threshold cannot be calculated for this data.
+        print("\nCould not compute outlier threshold (insufficient variation).")
+
+        
+# ============================================================================================
+# MERCHANT summaries
+# ============================================================================================
+
+def summary_merchant(df):
+    """Top merchants by volume, by fraud count, by fraud rate, total fraud value."""
+    print("\n=== MERCHANT SUMMARY ===")
+
+    # Explain the limitation of a small dataset because merchants with few transactions
+    # may appear to have unusually high fraud rates based on very little evidence.
+    print("Note: with only ~100 rows, many merchants will have very few transactions.")
+    print("      Prefer rate + count together; a 100% rate on 1 transaction is weak evidence.")
+
+    # Look for a recognised merchant column name so the analysis can work with datasets
+    # that use different names for the same information.
+    col = find_optional_column(df, optional_merchant_names)
+    if col is None:
+        print(f"No Merchant column found. Looked for: {optional_merchant_names}")
+        print("Skipping merchant analysis.")
+        return
+
+    # Use records with the required values so incomplete transactions do not affect the analysis.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid rows for merchant analysis.")
+        return
+
+    # Check the merchant column is still available before using it in the calculations.
+    if col not in valid.columns:
+        print(f"Merchant column '{col}' missing after filtering.")
+        return
+
+    # Count transactions for each merchant and show the ten busiest merchants.
+    # value_counts() ranks merchants by frequency, making transaction volume easy to compare.
+    top_vol = valid[col].value_counts().head(10)
+    print(f"\nTop 10 merchants by number of transactions (using column '{col}'):")
+    print(top_vol.to_string())
+
+    # Filter to fraudulent transactions so legitimate transactions do not affect the fraud counts.
+    fraud_only = valid[valid["Is Fraud"] == True]
+    if fraud_only.empty:
+        print("\nNo fraudulent transactions to rank merchants by fraud count.")
+    else:
+        # Count fraud cases for each merchant to identify which merchants have the most flagged transactions.
+        top_fraud_count = fraud_only[col].value_counts().head(10)
+        print(f"\nTop merchants by fraud count:")
+        print(top_fraud_count.to_string())
+
+    # Group transactions by merchant to calculate separate totals and fraud counts for each merchant.
+    # This allows merchants to be compared instead of combining all transactions into one result.
+    merchant_stats = valid.groupby(col).agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Calculate each merchant's fraud percentage so merchants with different transaction volumes
+    # can be compared more fairly than by fraud count alone.
+    merchant_stats["Fraud_Rate_%"] = (merchant_stats["Fraud_Count"] / merchant_stats["Total"] * 100).round(1)
+
+    # Keep only fraudulent transactions and group them by merchant to calculate the total
+    # transaction amount associated with fraud for each merchant.
+    fraud_value_by_merch = (valid[valid["Is Fraud"] == True].groupby(col)["Amount (USD)"].sum())
+
+    # Add the calculated fraud values to the merchant statistics for comparison.
+    merchant_stats["Fraud_Value"] = fraud_value_by_merch
+
+    # Replace missing values with zero for merchants with no flagged transactions,
+    # so they can still appear in the merchant summary.
+    merchant_stats["Fraud_Value"] = merchant_stats["Fraud_Value"].fillna(0)
+
+    # Only rank merchants with at least two transactions to reduce the risk of treating
+    # a 100% fraud rate from a single transaction as strong evidence.
+    # Sort from highest to lowest rate and keep the top ten merchants.
+    rate_candidates = merchant_stats[merchant_stats["Total"] >= 2].sort_values(
+        "Fraud_Rate_%", ascending=False).head(10)
+
+    print("\nTop merchants by fraud rate (min 2 transactions):")
+    if rate_candidates.empty:
+        print("  Not enough merchants with ≥2 transactions.")
+    else:
+        print(rate_candidates[["Total", "Fraud_Count", "Fraud_Rate_%", "Fraud_Value"]].to_string())
+
+    # Sort merchants by the total value of fraud-flagged transactions to identify
+    # those associated with the largest amounts, then display the top ten.
+    print("\nTotal value of fraud per merchant (top 10 by value):")
+    top_val = merchant_stats.sort_values("Fraud_Value", ascending=False).head(10)
+    print(top_val[["Total", "Fraud_Count", "Fraud_Rate_%", "Fraud_Value"]].to_string())
+
+# ============================================================================================
+# LOCATION summaries
+# ============================================================================================
+
+def summary_location(df):
+    """Locations with most fraud + fraud rate (with min-count filter)."""
+    print("\n=== LOCATION SUMMARY ===")
+
+    # Explain that rates based on small numbers of transactions can be misleading,
+    # so both the fraud rate and transaction count should be considered.
+    print("Note: small sample sizes make rates unstable. Use rate + count together.")
+
+    # Find a recognised location column name so the analysis can work with datasets
+    # that may use different names for location information.
+    col = find_optional_column(df, optional_location_names)
+    if col is None:
+        print(f"No Location/City column found. Looked for: {optional_location_names}")
+        print("Skipping location analysis.")
+        return
+
+    # Use records with the required values so incomplete transactions do not affect the analysis.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid rows for location analysis.")
+        return
+
+    # Keep only transactions marked as fraudulent so legitimate transactions
+    # do not affect the ranking of locations by fraud count.
+    fraud_only = valid[valid["Is Fraud"] == True]
+    if fraud_only.empty:
+        print("No fraudulent transactions.")
+    else:
+        # Count fraud cases for each location and show the ten highest counts.
+        # value_counts() is used to rank locations by how often fraud appears in the data.
+        top_fraud_loc = fraud_only[col].value_counts().head(10)
+        print(f"\nLocations with the most fraud (count) — column '{col}':")
+        print(top_fraud_loc.to_string())
+
+    # Group transactions by location so each location has its own total and fraud count.
+    # This makes it possible to compare fraud patterns between locations.
+    loc_stats = valid.groupby(col).agg(Total=("Is Fraud", "count"), Fraud_Count=("Is Fraud", "sum"))
+
+    # Calculate the percentage of transactions marked as fraudulent in each location.
+    # Rates help compare locations with different numbers of transactions.
+    loc_stats["Fraud_Rate_%"] = (loc_stats["Fraud_Count"] / loc_stats["Total"] * 100).round(1)
+
+    # Include locations with at least two transactions before ranking their fraud rates.
+    # This reduces the risk of overinterpreting a rate based on just one transaction.
+    # Sort from highest to lowest rate and display the top ten locations.
+    rate_candidates = loc_stats[loc_stats["Total"] >= 2].sort_values(
+        "Fraud_Rate_%", ascending=False).head(10)
+
+    print("\nLocations by fraud rate (min 2 transactions):")
+    if rate_candidates.empty:
+        print("  Not enough locations with ≥2 transactions.")
+    else:
+        print(rate_candidates.to_string())
+
+
+        
 # ======================================================================
 # Function: plot_fraud_counts
 # Description: Creates a bar chart of fraud vs non-fraud counts.
