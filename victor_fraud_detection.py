@@ -1105,6 +1105,10 @@ while True:
         if loaded is not None:
             df = loaded
 
+            # A newly loaded CSV has not passed through clean_data yet,
+            # so mark it as uncleaned before any summaries or charts run.
+            is_cleaned = False
+
         # Return to the menu after loading instead of continuing into
         # the cleaning, summary or chart actions during the same iteration.
         continue
@@ -1120,8 +1124,21 @@ while True:
     if choice == "2":
         df = clean_data(df)
 
+        # Record that cleaning has been performed so automatic cleaning 
+        # does not run again before every summaery or chart.
+        is_cleaned = True
+
+    # Clean data automatically before summaries or charts.
+    if choice in ["3", "4"]:
+        # Automatically clean the data if the user skipped option 2.
+        # This prepares timestamps and amounts before analysis uses them.
+        if not is_cleaned:
+            print("The data has not been cleaned yet. Cleaning it now....")
+            df = clean_data(df)
+        is_cleaned = True
+
     # Run all summaries using the current dataset when option 3 is selected.
-    elif choice == "3":
+    if choice == "3":
         summarise_all(df)
 
     # Open the chart sub-menu when option 4 is selected,
