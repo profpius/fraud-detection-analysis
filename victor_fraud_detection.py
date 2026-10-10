@@ -578,48 +578,319 @@ def summary_location(df):
 
 
         
-# ======================================================================
-# Function: plot_fraud_counts
-# Description: Creates a bar chart of fraud vs non-fraud counts.
-#              Saves the chart as a PNG file (more reliable) and also tries to display it.
-# Parameters: df (pd.DataFrame)
-# Returns: None 
-# =======================================================================
+# =========================
+# CHART functions
+# =========================
 
-# Define a function to create a chart showing fraud and non-fraud transactions.
-def plot_fraud_counts(df):
-    # Check how many transactions are marked as fraud and not fraud.
-    fraud_counts = df["Is Fraud"].value_counts()
-    # Set the size of the chart.
-    plt.figure(figsize=(7,5))
-    # Use clear labels instead of True and False on the chart\.
-    labels = fraud_counts.index.map({True: "Fraud", False: "Not Fraud", pd.NA:"Unknown"})
-    # Create a bar chart to compare the transaction types.
-    plt.bar(labels, fraud_counts.values, color = ["red", "green", "gray"])
-    # Add a title to explain what the chart shows.
-    plt.title("Fraud Vs Non-Fraud Transactions")
-    # Label the horizontal axis to explain transaction categories.
-    plt.xlabel("Transaction Type")
-    # Label the vertical axis to show what the numbers represent.
-    plt.ylabel("Number of transactions")
-    # Adjust the layout so everything fits properly.
+# ============================================================================================
+# Function: _save_and_show
+# Description: Save the current chart as a PNG, then try to display it. If no window can
+#              open, the saved file can still be viewed.
+# Parameters: filename (str): - name of the PNG file to save.
+# Returns: None
+# ============================================================================================
+
+def _save_and_show(filename):
+    """Save figure and attempt to display it."""
+
+    # Adjust spacing so chart labels and titles are less likely to overlap or get cut off.
     plt.tight_layout()
 
-    # Save a copy of the chart as a PNG file (useful backup).
-    filename = "fraud_counts_chart.png"
+    # Save the chart to a file so the results can still be viewed after the program finishes.
     plt.savefig(filename)
     print(f"Chart saved as '{filename}' in the current folder.")
 
-    # Try to display the chart window.
-    # Some environments cannot open a graphical window, so we catch the error
-    # and continue instead of letting the whole program crash.
+    # Try to display the chart because some environments support chart windows while others do not.
     try:
-        plt.show() # Show the chart to the user.
+        plt.show()
+
+    # Handle display errors so the program can explain the problem instead of stopping unexpectedly.
     except Exception:
-        print("Could not open the chart window (this is normal in some environments).")
-        print("You can still open the saved file: fraud_counts_chart.png")
+        print("Could not open the chart window (normal in some environments).")
+        print(f"You can still open the saved file: {filename}")
 
+    # Close the figure whether displaying it succeeds or fails, helping prevent figures
+    # from remaining open and interfering with later charts.
+    finally:
+        plt.close()
 
+# ============================================================================================
+# Function: chart_fraud_counts
+# Description: Bar chart comparing the number of fraud and non-fraud transactions.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def chart_fraud_counts(df):
+    """Bar chart of fraud vs non-fraud counts."""
+
+    # Count transactions for each fraud status, including missing values,
+    # so unknown statuses are not silently excluded from the summary.
+    fraud_counts = df["Is Fraud"].value_counts(dropna=False)
+
+    # Create a figure with a suitable width and height so the chart is easy to read.
+    plt.figure(figsize=(7, 5))
+
+    # Replace Boolean values with readable category names for the chart's horizontal axis.
+    # The mapping also provides a label for missing fraud statuses.
+    labels = fraud_counts.index.map({True: "Fraud", False: "Not Fraud", pd.NA: "Unknown"})
+
+    # Convert labels to strings so unexpected or unmapped values can still be displayed.
+    labels = [str(l) for l in labels]
+
+    # Build a colour list so each category can be distinguished visually.
+    colors = []
+    for lab in labels:
+        if lab == "Fraud":
+            # Use red to make fraudulent transactions stand out.
+            colors.append("red")
+        elif lab == "Not Fraud":
+            # Use green to distinguish transactions marked as legitimate.
+            colors.append("green")
+        else:
+            # Use grey for unknown or unexpected labels.
+            colors.append("gray")
+
+    # Draw a bar for each category, using the transaction counts as bar heights.
+    plt.bar(labels, fraud_counts.values, color=colors)
+
+    # Add a title and axis labels so the chart's purpose and values are clear.
+    plt.title("Fraud vs Non-Fraud Transactions")
+    plt.xlabel("Transaction Type")
+    plt.ylabel("Number of transactions")
+
+    # Save and attempt to display the chart using the shared chart-handling function.
+    _save_and_show("fraud_counts_chart.png")
+
+# ============================================================================================
+# Function: chart_fraud_by_month
+# Description: Bar chart of fraudulent transaction counts for each month.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def chart_fraud_by_month(df):
+    """Bar chart of fraudulent transaction counts by month."""
+
+    # Use records with the required values so incomplete transactions do not affect the chart.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid data for monthly chart.")
+        return
+
+    # Convert timestamps to year-month labels so transactions can be grouped chronologically by month.
+    valid["YearMonth"] = valid["Timestamp"].dt.to_period("M").astype(str)
+
+    # Filter to fraudulent transactions, then group by month and count the rows in each group.
+    # groupby() separates the months, while size() counts the fraudulent transactions in each month.
+    monthly_fraud = valid[valid["Is Fraud"] == True].groupby("YearMonth").size()
+
+    # Stop if there are no fraudulent transactions, because there would be no bars to display.
+    if monthly_fraud.empty:
+        print("No fraudulent transactions to plot by month.")
+        return
+
+    # Create a wider figure so monthly labels have more room to fit.
+    plt.figure(figsize=(10, 5))
+
+    # Draw a bar for each month so the number of fraudulent transactions can be compared visually.
+    monthly_fraud.plot(kind="bar", color="crimson")
+
+    # Add a title and axis labels to explain what the chart shows.
+    plt.title("Fraudulent Transactions by Month")
+    plt.xlabel("Month")
+    plt.ylabel("Number of Fraud Transactions")
+
+    # Rotate the month labels and align them to reduce overlap and improve readability.
+    plt.xticks(rotation=45, ha="right")
+
+    # Save the chart and attempt to display it using the shared chart-handling function.
+    _save_and_show("fraud_by_month_chart.png")
+
+# ============================================================================================
+# Function: chart_histogram_amounts
+# Description: Histogram showing how transaction amounts are distributed.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def chart_histogram_amounts(df):
+    """Histogram of transaction amounts."""
+
+    # Use records with the required values so missing amounts do not affect the chart.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid data for amount histogram.")
+        return
+
+    # Create a figure with enough space for the amount ranges and frequency labels.
+    plt.figure(figsize=(8, 5))
+
+    # Use a histogram to group transaction amounts into 20 ranges and show how often
+    # amounts fall within each range. The edge colour makes the bars easier to distinguish.
+    plt.hist(valid["Amount (USD)"], bins=20, color="steelblue", edgecolor="black")
+
+    # Add a title and axis labels so the chart's information is clear.
+    plt.title("Histogram of Transaction Amounts")
+    plt.xlabel("Amount (USD)")
+    plt.ylabel("Frequency")
+
+    # Save the histogram and attempt to display it using the shared chart-handling function.
+    _save_and_show("amount_histogram.png")
+
+# ============================================================================================
+# Function: chart_box_amount_by_fraud
+# Description: Box plot comparing amounts of fraudulent and legitimate transactions.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def chart_box_amount_by_fraud(df):
+    """Box plot of amount, fraud vs non-fraud."""
+
+    # Use records with the required values so incomplete transactions do not affect the comparison.
+    valid = get_valid(df)
+    if valid.empty:
+        print("No valid data for box plot.")
+        return
+
+    # Separate fraudulent and legitimate transaction amounts so their distributions can be compared.
+    # loc selects rows matching each fraud-status condition and returns the amount column.
+    fraud_amts = valid.loc[valid["Is Fraud"] == True, "Amount (USD)"]
+    legit_amts = valid.loc[valid["Is Fraud"] == False, "Amount (USD)"]
+
+    # Stop if neither group contains data, because there would be nothing to compare in the chart.
+    if fraud_amts.empty and legit_amts.empty:
+        print("No data for box plot.")
+        return
+
+    # Build lists for the box plot so only groups containing data are included.
+    data_to_plot = []
+    labels = []
+
+    # Add legitimate transaction amounts and their label when that group is available.
+    if not legit_amts.empty:
+        data_to_plot.append(legit_amts)
+        labels.append("Not Fraud")
+
+    # Add fraudulent transaction amounts and their label when that group is available.
+    if not fraud_amts.empty:
+        data_to_plot.append(fraud_amts)
+        labels.append("Fraud")
+
+    # Create a figure with enough space to display both box plots clearly.
+    plt.figure(figsize=(7, 5))
+
+    # Draw a box plot for each available group to compare medians, spread and possible outliers.
+    # patch_artist=True allows the boxes to be filled with colour.
+    plt.boxplot(data_to_plot, labels=labels, patch_artist=True, boxprops=dict(facecolor="lightblue"))
+
+    # Add a title and axis label so the purpose and measurement are clear.
+    plt.title("Transaction Amount: Fraud vs Non-Fraud")
+    plt.ylabel("Amount (USD)")
+
+    # Save the chart and attempt to display it using the shared chart-handling function.
+    _save_and_show("amount_boxplot_fraud.png")
+
+# ============================================================================================
+# Function: chart_fraud_by_merchant
+# Description: Bar chart of the 10 merchants with the most fraud. Skipped if the dataset
+#              has no merchant column.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def chart_fraud_by_merchant(df):
+    """Bar chart of top merchants by fraud count."""
+
+    # Find the merchant column by checking possible column names,
+    # because different datasets may use different names for the same information.
+    col = find_optional_column(df, optional_merchant_names)
+
+    # Stop if no merchant column exists, because the chart cannot compare merchants without it.
+    if col is None:
+        print("No Merchant column available for chart.")
+        return
+
+    # Use valid records so transactions missing required values do not affect the analysis.
+    valid = get_valid(df)
+
+    # Keep only fraudulent transactions because this chart focuses on which merchants
+    # have the highest number of fraud cases, not the number of legitimate transactions.
+    fraud_only = valid[valid["Is Fraud"] == True]
+
+    # Stop if there are no fraudulent transactions, because there would be no fraud counts to plot.
+    if fraud_only.empty:
+        print("No fraudulent transactions for merchant chart.")
+        return
+
+    # Count fraud cases for each merchant and keep only the ten highest counts
+    # so the chart remains focused and easier to read.
+    top = fraud_only[col].value_counts().head(10)
+
+    # Give the chart enough width to display merchant names clearly.
+    plt.figure(figsize=(10, 5))
+
+    # Use a bar chart because it makes it easy to compare fraud counts between merchants.
+    top.plot(kind="bar", color="darkred")
+
+    # Add a title and axis labels so the reader understands what is being compared.
+    plt.title(f"Top Merchants by Fraud Count ({col})")
+    plt.xlabel("Merchant")
+    plt.ylabel("Fraud Count")
+
+    # Rotate and align the merchant names to reduce overlapping labels.
+    plt.xticks(rotation=45, ha="right")
+
+    # Save the chart and attempt to display it using the shared chart-handling function.
+    _save_and_show("fraud_by_merchant_chart.png")
+
+# ============================================================================================
+# Function: chart_fraud_by_location
+# Description: Bar chart of the 10 locations with the most fraud. Skipped if the dataset
+#              has no location column.
+# Parameters: df (pd.DataFrame): - the cleaned fraud detection data.
+# Returns: None
+# ============================================================================================
+def chart_fraud_by_location(df):
+    """Bar chart of top locations by fraud count."""
+
+    # Look for a recognised location column name because different datasets
+    # may use different names, such as Location or City.
+    col = find_optional_column(df, optional_location_names)
+
+    # Stop if no location column is available, because locations cannot be compared without it.
+    if col is None:
+        print("No Location/City column available for chart.")
+        return
+
+    # Use records with the required values so incomplete transactions do not affect the analysis.
+    valid = get_valid(df)
+
+    # Keep only fraudulent transactions because the chart focuses on where
+    # fraud cases are recorded, rather than all transactions.
+    fraud_only = valid[valid["Is Fraud"] == True]
+
+    # Stop if there are no fraudulent transactions, because there would be no data to plot.
+    if fraud_only.empty:
+        print("No fraudulent transactions for location chart.")
+        return
+
+    # Count fraud cases for each location and keep the ten highest counts
+    # to make the chart easier to read and compare.
+    top = fraud_only[col].value_counts().head(10)
+
+    # Create a wider figure so location names have more room on the chart.
+    plt.figure(figsize=(10, 5))
+
+    # Use a bar chart because it makes differences in fraud counts between locations easy to see.
+    top.plot(kind="bar", color="darkorange")
+
+    # Add a descriptive title and axis labels so the chart is easy to interpret.
+    plt.title(f"Top Locations by Fraud Count ({col})")
+    plt.xlabel("Location")
+    plt.ylabel("Fraud Count")
+
+    # Rotate and align the labels to reduce overlap when location names are long.
+    plt.xticks(rotation=45, ha="right")
+
+    # Save the chart and attempt to display it using the shared chart-handling function.
+    _save_and_show("fraud_by_location_chart.png")
 # ==============================================================================
 # Function: show_menu
 # Description: Print the numbered menu options.
