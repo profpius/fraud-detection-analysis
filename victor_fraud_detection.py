@@ -22,7 +22,7 @@
 # is missing, the user receives clear guidance on how to fix
 # the problem instead of an unexplained error.
 # ============================================================
-
+import os # Built into Python; used to check that saved charts files exist.
 # Use try/except to check whether pandas and matplotlib is installed.
 # If they are missing, display an error message and explain how to install them.
 try: 
@@ -603,9 +603,20 @@ def _save_and_show(filename):
     # Adjust spacing so chart labels and titles are less likely to overlap or get cut off.
     plt.tight_layout()
 
-    # Save the chart to a file so the results can still be viewed after the program finishes.
-    plt.savefig(filename)
-    print(f"Chart saved as '{filename}' in the current folder.")
+   # Try to save the chart while allowing the program to handle saving errors gracefully.
+    try:
+        plt.savefig(filename)
+    # Catch saving errors so the user knows why the chart could not be saved.
+    except Exception as exc:
+        print(f"ERROR: Chart could not be saved as '{filename}': {exc}")
+    else:
+        # Verify that the file exists and contains data before confirming that it was saved.
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            # Show the full file path so the user can locate the saved chart.
+            print(f"Chart saved successfully: {os.path.abs.path(filename)}")
+        else:
+            # Warn the user if the file is missing or empty so they can check the saved location.
+            print(f"WARNING: '{filename}' is missing or empty. Check the save operations.")
 
     # Try to display the chart because some environments support chart windows while others do not.
     try:
@@ -788,7 +799,7 @@ def chart_box_amount_by_fraud(df):
 
     # Draw a box plot for each available group to compare medians, spread and possible outliers.
     # patch_artist=True allows the boxes to be filled with colour.
-    plt.boxplot(data_to_plot, labels=labels, patch_artist=True, boxprops=dict(facecolor="lightblue"))
+    plt.boxplot(data_to_plot, label=labels, patch_artist=True, boxprops=dict(facecolor="lightblue"))
 
     # Add a title and axis label so the purpose and measurement are clear.
     plt.title("Transaction Amount: Fraud vs Non-Fraud")
