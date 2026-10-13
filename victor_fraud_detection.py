@@ -100,6 +100,25 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
     print(df.head())
     return df # Return the valid dataset so the menu can store and use it.
 
+def ask_keep_or_delete(question):
+    """Ask the user to keep or delete rows. Repeats until they type k or d."""
+    # Repeat the question until the user enters a recognised choice, so
+    # an invalid reponse does not lead to an unintended data-cleaning decision.
+    while True:
+        # Remove surrounding spaces and convert the answer to lowercase
+        # so inputs such as "K" and "D" are accepted.
+        answer = input(f"{question} (k = keep, d = delete): ").strip().lower()
+        # Returns False when the user chooses to keep the rows,
+        # allowing the calling function to aviod deleting them.
+        if answer == "k":
+            return False  # Do not delete.
+        # Returns True when the user chooses to delete the rows,
+        # allowing the calling function to perform the deletion.
+        if answer == "d":
+            return True   # Delete.
+        # Explain the accepted inputs so the user can correct an invalid response.
+        print("Please type k or d.")
+
 # ============================================================================================
 # Function: clean_data
 # Description: Fix data types, mark problem rows, and check for duplicates.
@@ -205,19 +224,48 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     
     else: # If duplicates are found, tell the user how many need to be reviewed.
         print(f"{duplicate_rows} duplicate transactions found. Further investigation is required.")
-    
-    return data # Return the cleaned data so the other functions can use it.
+  
+    # Count rows marked as INVALID so the user can decide whether to remove them.
+    invalid_count = (data["Data Status"] == bad_value_marker).sum()
+    # Ask for a decision only when INVALID rows are present, avoiding unnecessary prompt.
+    if invalid_count > 0:
+        # Use the user's choice to decide whether the flagged rows should be removed.
+        if ask_keep_or_delete(f"Delete the {invalid_count} INVALID rows?"):
+            # Filter out INVALID rows and make a copy to avoid unintended changes to the original DataFrame.
+            data = data[data["Data Status"] != bad_value_marker].copy()
+            print(f"Deleted {invalid_count} INVALID rows.")
+        else:
+            print("INVALID rows kept (they stay flagged in 'Data Status').")
 
-# Helper function to select rows that contain the essential data for analysis.
+    # Check for duplicate rows so the user can decide whether they should remove them.
+    if duplicate_rows > 0:
+        # Ask before deleting duplicates so the program does not remove records without the user's permission.
+        if ask_keep_or_delete(f"Delete the {duplicate_rows} duplicate rows?"):
+            # Remove exact duplicate rows and create a copy of the resulting DataFrame.
+            data = data.drop_duplicates().copy()
+            print(f"Deleted {duplicate_rows} duplicate rows.")
+        else:
+            print("Duplicate rows kept.")
+    # Returns the updated DataFrame so later clearing steps or analysis use the user's chosen changes.
+    return data
 
 def get_valid(df):
-    """Keep records with the required values so incomplete data does not affect analysis."""
+    """Keep only rows that have the required values and were not marked INVALID."""
+    # Check that each required column has a value, because missing information
+    # could make the transaction summaries and fraud analysis unreliable.
+    keep = (
+        df["Timestamp"].notna()
+        & df["Amount (USD)"].notna()
+        & df["Is Fraud"].notna()
+    )
 
-    return df[  # Select only the rows that meet all three conditions.
-        df["Timestamp"].notna()  # Check that the transaction has a timestamp.
-        & df["Amount (USD)"].notna()  # Check that the transaction has an amount.
-        & df["Is Fraud"].notna()  # Check that the fraud status is available.
-    ].copy()  # Create a separate copy of the selected rows.
+    # Exclude rows flagged during cleaning so records identified as INVALID
+    # do not affect the analysis, even if their required fields contains values.
+    if "Data Status" in df.columns:
+        keep = keep & (df["Data Status"] != bad_value_marker)
+    # Return only the rows that pass the checks and make a copy so later operations
+    # can work with the filtered data without unintentionally modifying the original DataFrame.
+    return df[keep].copy()
 
 # ============================================================================================
 # Function: summary_overall
@@ -613,7 +661,7 @@ def _save_and_show(filename):
         # Verify that the file exists and contains data before confirming that it was saved.
         if os.path.exists(filename) and os.path.getsize(filename) > 0:
             # Show the full file path so the user can locate the saved chart.
-            print(f"Chart saved successfully: {os.path.abs.path(filename)}")
+            print(f"Chart saved successfully: {os.path.abspath(filename)}")
         else:
             # Warn the user if the file is missing or empty so they can check the saved location.
             print(f"WARNING: '{filename}' is missing or empty. Check the save operations.")
