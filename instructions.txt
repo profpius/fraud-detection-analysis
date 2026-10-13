@@ -5,10 +5,17 @@ FILES NEEDED (put both in the SAME folder)
   1. victor_fraud_detection.py
   2. fraud_detection_data.csv
 
+  Note: The script looks for the exact name "fraud_detection_data.csv".
+  If your CSV has a different name (e.g. "fraud_detection_data (1).csv"),
+  either rename the file or change this line near the top of the script:
+
+      file_name = "fraud_detection_data.csv"
+
 WHAT THE SCRIPT DOES:
-  1. Loads data from a csv file
+  1. Loads data from a CSV file
   2. Cleans the data (fixes dates and amounts, converts the Is Fraud column,
-     marks problem rows as INVALID, checks for duplicates)
+     marks problem rows as INVALID, checks for duplicates, and interactively
+     asks whether to delete INVALID rows and/or duplicate rows)
   3. Summarises the data (overall, time, amount, merchant, location)
   4. Draws charts (fraud counts, fraud by month, amount histogram,
      box plot, fraud by merchant/location) and saves them as PNG files
@@ -98,32 +105,40 @@ IMPORTANT
   - The menu starts with NO data loaded, so choose 1 first.
     Choices 2 to 4 will show "No data loaded. Please load the data first (Option 1)" until you do.
   - If you choose Summarise (3) or Visualise (4) without cleaning first,
-    the script automatically cleans the data for you and tells you it is doing so.
+    the script automatically cleans the data for you and tells you it is doing so
+    ("The data has not been cleaned yet. Cleaning it now....").
     You can still choose option 2 yourself if you want to see the cleaning messages first.
+  - During cleaning the script will ask interactive questions (k = keep, d = delete)
+    whenever INVALID rows or duplicate rows are found. Type k or d and press Enter.
   - Option 3 runs every summary at once (overall, time, amount, merchant, location).
   - Option 4 opens a short sub-menu so you can pick one chart or run all.
     Charts are saved as PNG files in the same folder. The script also tries
     to open a chart window. Close the window to return to the menu.
     If the window cannot open (common in some environments), the PNG file is still created.
   - Entering anything other than 1 to 5 shows
-    "Invalid choice" and asks again.
+    "Invalid choice. Please enter a number from 1 to 5." and asks again.
   - If pandas or matplotlib is missing, the script stops with a clear message telling you how to install them.
 
 ---------------------------------------------
 WHAT YOU SHOULD SEE
 ---------------------------------------------
 Choice 1 (Load):
-  "File has been found.", then the number of rows and columns,
-  then the first 5 rows.
+  "File has been found. Required columns are present. Data loaded successfully."
+  then the shape (rows, columns), then the first 5 rows.
 
-Choice 2 (Clean):
+Choice 2 (Clean) — and also the automatic clean that runs before Summarise/Visualise:
   Messages about timestamps, amounts, fraud labels,
-  INVALID rows, and duplicates.
+  zero/negative amounts, INVALID rows, and duplicates.
+  Then, if any INVALID rows exist:
+      Delete the N INVALID rows? (k = keep, d = delete):
+  Then, if any duplicate rows exist:
+      Delete the N duplicate rows? (k = keep, d = delete):
+  Type k or d (or K/D) for each question. Invalid answers are rejected until you type k or d.
 
 Choice 3 (Summarise) — prints all of the following:
 
   Overall
-    - Number of INVALID vs OK rows
+    - Number of INVALID vs OK rows (if Data Status column exists)
     - Total money lost to fraud (total value of fraudulent transactions)
     - Fraud as a percentage of transaction count and of total value
 
@@ -167,6 +182,8 @@ Choice 4 (Visualise) — chart sub-menu:
 
   Each chart is saved as a PNG in the same folder.
   Options 5 and 6 only work if the matching column exists in the CSV.
+  Summaries and charts use only rows that are not marked INVALID
+  (and that have valid Timestamp, Amount and Is Fraud values).
 
 ---------------------------------------------
 USING A DIFFERENT CSV FILE
@@ -194,7 +211,8 @@ merchant and location sections with a clear message instead of crashing.
 OUTPUT FILES
 ---------------------------------------------
 - The original CSV is never changed.
-- Cleaning only affects the data while the script is running.
+- Cleaning only affects the data while the script is running
+  (and only deletes rows if you answer "d" to the prompts).
 - Choice 4 creates PNG chart files in the same folder, for example:
     fraud_counts_chart.png
     fraud_by_month_chart.png
@@ -208,8 +226,11 @@ SUGGESTED ORDER OF USE
 ---------------------------------------------
 1. Load the data (option 1)
 2. Clean the data (option 2)   [optional — the script will auto-clean if you skip this]
+   → answer the keep/delete questions when they appear
 3. Summarise (option 3) — read the printed tables
 4. Visualise (option 4) — generate the charts you need
 5. Exit when finished
 
 You can re-run Clean, Summarise or Visualise as many times as you like after loading.
+Note: if you already cleaned once, the is_cleaned flag prevents automatic re-cleaning
+until you load the data again.
