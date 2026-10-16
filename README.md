@@ -116,4 +116,3 @@ It was also tested with a CSV that is missing the Amount column and with an empt
 ## Notes
 
 - The program only reads the CSV. It never writes to it.
--
