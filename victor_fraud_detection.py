@@ -192,7 +192,15 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
     # If there are invalid amounts, inform the user how many were found.
     else:
         print(f"{invalid_amount_count} zero or negative Amount (USD) values found. Marked as INVALID.")
-
+    # ================================================================================================
+    # Function: to_boolean
+    # Description: Converts different representations of fraud labels into True or False.
+    #              This allows values such as "yes", "1", and "true" to be treated consistently.
+    # Parameters: 
+    #            value: The fraud label to be checked and converted.
+    # Returns: True or False for recognised values, or pd.NA if the value is missing or unrecognised.
+    # ==================================================================================================
+    
     # I standardise different representations of fraud labels so that values such as True, 1, and yes
     # can be treated consistently during counting and comparison.
     def to_boolean(value): # Define a function to convert different values into True or False for the Is Fraud column.
@@ -265,6 +273,16 @@ def clean_data(df): # Cleans the fraud detection data so it is ready for analysi
             print("Duplicate rows kept.")
     # Returns the updated DataFrame so later clearing steps or analysis use the user's chosen changes.
     return data
+
+# =====================================================================================
+# Function: get_valid
+# Description: Filters the DataFrame to keep rows with all required values and exclude
+#              rows marked as INVALID. This helps ensure that missing or unreliable data
+#              does not affect the fraud summaries and analysis.
+# Parameters: 
+#            df: The DataFrame containing the fraud detection data.
+# Returns: A copy of the DataFrame containing only rows that pass the validity checks.
+# =======================================================================================
 
 def get_valid(df):
     """Keep only rows that have the required values and were not marked INVALID."""
