@@ -56,6 +56,15 @@ bad_value_marker = "INVALID"
 optional_merchant_names = ["Merchant", "merchant", "Merchant Name", "merchant_name"]
 optional_location_names = ["Location", "location", "City", "city", "Transaction City", "transaction_city"]
 
+# =======================================================================================================
+# Function: find_optional_column
+# Description: Finds a matching column name from a list of possible names in the DataFrame.
+#              This is needed because optional columns, such as Merchant or Location, may have different names in different datasets.
+# Parameters:
+#           df: The DataFrame containing the fraud detection data.
+#           candidates: A list of possible column names to check.
+# Returns: The matching column name if found, or None if no matcg exists.
+# ===========================================================================================================
 
 def find_optional_column(df, candidates): # Define a function that accepts a dataset and list of possible column names.
     """Find optional columns even when their names differ between datasets.""" # Explain the purpose of the function.
