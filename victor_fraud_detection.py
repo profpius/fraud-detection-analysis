@@ -108,6 +108,14 @@ def load_data(file_name): # Loads the CSV file so its data can be used for clean
     print(f"Shape: {df.shape}")
     print(df.head())
     return df # Return the valid dataset so the menu can store and use it.
+# ===============================================================================
+# Function: ask_keep_or_delete
+# Description: Asks the user whether to keep or delete rows marked as invalid during cleaning.
+#              This allows the user to decide what happens to the original data.
+# Parameters:
+#            question: The message displays to the user asking them to choose.
+# Returns: True if user chooses to keep the rows, or False if they choose to delete them or enter an invalid response.
+# ================================================================================
 
 def ask_keep_or_delete(question):
     """Ask the user to keep or delete rows. Repeats until they type k or d."""
